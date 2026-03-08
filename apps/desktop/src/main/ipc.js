@@ -260,6 +260,11 @@ function registerIpcHandlers() {
     });
   });
 
+  // ─── Read file as buffer (for renderer blob creation) ───
+  ipcMain.handle('read-file', (_event, filePath) => {
+    return fs.readFileSync(filePath);
+  });
+
   // ─── Settings ───
   ipcMain.handle('get-setting', (_event, key) => {
     const store = initStore();

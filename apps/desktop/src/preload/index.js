@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('processing-progress', handler);
   },
 
+  // Read file as buffer
+  readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
+
   // Settings
   getSetting: (key) => ipcRenderer.invoke('get-setting', key),
   setSetting: (key, value) => ipcRenderer.invoke('set-setting', key, value),

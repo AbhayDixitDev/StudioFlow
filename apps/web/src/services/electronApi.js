@@ -68,6 +68,14 @@ export async function installDemucs() {
   return api.installDemucs();
 }
 
+// ─── File reading ───
+
+export async function readFile(filePath) {
+  const api = getApi();
+  if (!api) throw new Error('Not in Electron');
+  return api.readFile(filePath);
+}
+
 // ─── Progress ───
 
 export function onProgress(callback) {

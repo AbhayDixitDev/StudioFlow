@@ -16,7 +16,7 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function StemPlayer({ stems = [], baseUrl }) {
+export default function StemPlayer({ stems = [], baseUrl, preloadedBlobUrls = null }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -53,67 +53,46 @@ export default function StemPlayer({ stems = [], baseUrl }) {
     });
   }, [stemKey]);
 
-  // Fetch stems as blobs in parallel
+  // Load stems — either from pre-loaded blob URLs or by fetching from API
   useEffect(() => {
+    const sourceKey = preloadedBlobUrls ? `preloaded|${stemKey}` : `${stemKey}|${baseUrl}`;
+
     // Skip if already loaded these exact stems
-    if (loadedKey.current === `${stemKey}|${baseUrl}`) {
+    if (loadedKey.current === sourceKey) {
       setLoading(false);
       return;
     }
-    if (!stemKey || !baseUrl) return;
+    if (!stemKey) return;
+    if (!preloadedBlobUrls && !baseUrl) return;
 
     let cancelled = false;
     setLoading(true);
     setLoadErrors({});
 
-    async function fetchAllStems() {
-      const results = await Promise.allSettled(
-        stems.map(async (stem) => {
-          const response = await api.get(`${baseUrl}/${stem.name}`, {
-            responseType: 'blob',
-          });
-          return { name: stem.name, blob: response.data };
-        })
-      );
+    // Stop and remove old audio elements
+    Object.values(audioRefs.current).forEach((audio) => {
+      audio.pause();
+      audio.src = '';
+    });
+    audioRefs.current = {};
 
+    function initAudioFromUrls(urls) {
       if (cancelled) return;
 
-      // Revoke old blob URLs
-      Object.values(blobUrls.current).forEach((url) => URL.revokeObjectURL(url));
-      blobUrls.current = {};
-
-      // Stop and remove old audio elements
-      Object.values(audioRefs.current).forEach((audio) => {
-        audio.pause();
-        audio.src = '';
-      });
-      audioRefs.current = {};
-
-      const errors = {};
-
-      for (const result of results) {
-        if (result.status === 'fulfilled') {
-          const { name, blob } = result.value;
-          const blobUrl = URL.createObjectURL(blob);
-          blobUrls.current[name] = blobUrl;
-          const audio = new Audio(blobUrl);
+      stems.forEach((stem) => {
+        const url = urls[stem.name];
+        if (url) {
+          blobUrls.current[stem.name] = url;
+          const audio = new Audio(url);
           audio.preload = 'auto';
-          audioRefs.current[name] = audio;
+          audioRefs.current[stem.name] = audio;
         } else {
-          // Find the stem name from the error
-          const stemIndex = results.indexOf(result);
-          const stemName = stems[stemIndex]?.name || 'unknown';
-          errors[stemName] = true;
-          console.error(`Failed to load stem ${stemName}:`, result.reason);
+          setLoadErrors((prev) => ({ ...prev, [stem.name]: true }));
         }
-      }
+      });
 
-      if (cancelled) return;
+      loadedKey.current = sourceKey;
 
-      setLoadErrors(errors);
-      loadedKey.current = `${stemKey}|${baseUrl}`;
-
-      // Get duration from first successfully loaded stem
       const firstAudio = Object.values(audioRefs.current)[0];
       if (firstAudio) {
         const setDur = () => {
@@ -129,12 +108,47 @@ export default function StemPlayer({ stems = [], baseUrl }) {
       setLoading(false);
     }
 
-    fetchAllStems();
+    if (preloadedBlobUrls) {
+      // Use pre-loaded blob URLs directly (Electron mode)
+      initAudioFromUrls(preloadedBlobUrls);
+    } else {
+      // Fetch from API (web/server mode)
+      // Revoke old blob URLs (only revoke ones we created)
+      Object.values(blobUrls.current).forEach((url) => URL.revokeObjectURL(url));
+      blobUrls.current = {};
+
+      (async () => {
+        const results = await Promise.allSettled(
+          stems.map(async (stem) => {
+            const response = await api.get(`${baseUrl}/${stem.name}`, {
+              responseType: 'blob',
+            });
+            return { name: stem.name, blob: response.data };
+          })
+        );
+
+        if (cancelled) return;
+
+        const urls = {};
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            const { name, blob } = result.value;
+            urls[name] = URL.createObjectURL(blob);
+          } else {
+            const stemIndex = results.indexOf(result);
+            const stemName = stems[stemIndex]?.name || 'unknown';
+            console.error(`Failed to load stem ${stemName}:`, result.reason);
+          }
+        }
+
+        initAudioFromUrls(urls);
+      })();
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [stemKey, baseUrl, stems]);
+  }, [stemKey, baseUrl, stems, preloadedBlobUrls]);
 
   // Full cleanup on unmount
   useEffect(() => {

@@ -7,7 +7,7 @@ const FORMATS = [
   { id: 'flac', label: 'FLAC', description: 'Lossless compressed' },
 ];
 
-export default function DownloadPanel({ stems = [], baseUrl, fileName, onDownload }) {
+export default function DownloadPanel({ stems = [], baseUrl, fileName, onDownload, preloadedBlobUrls = null }) {
   const [selected, setSelected] = useState(() =>
     stems.reduce((acc, s) => ({ ...acc, [s.name]: true }), {})
   );
@@ -32,6 +32,22 @@ export default function DownloadPanel({ stems = [], baseUrl, fileName, onDownloa
 
     if (onDownload) {
       onDownload({ stems: selectedStems, format });
+      return;
+    }
+
+    if (preloadedBlobUrls) {
+      // Download from pre-loaded blobs (Electron/local mode)
+      selectedStems.forEach((stem) => {
+        const blobUrl = preloadedBlobUrls[stem.name];
+        if (!blobUrl) return;
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        const baseName = fileName ? fileName.replace(/\.[^.]+$/, '') : '';
+        a.download = baseName ? `${baseName}_${stem.name}.wav` : `${stem.name}.wav`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      });
       return;
     }
 

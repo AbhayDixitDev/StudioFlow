@@ -7,6 +7,8 @@ import DownloadPanel from '../features/separator/DownloadPanel.jsx';
 import api from '../services/api.js';
 import { formatFileSize } from '@studioflow/shared';
 
+const isElectron = !!(window.electronAPI);
+
 const STEPS = {
   INPUT: 'input',
   PROCESSING: 'processing',
@@ -43,6 +45,7 @@ export default function AudioSeparator() {
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('');
   const [stems, setStems] = useState([]);
+  const [stemBlobUrls, setStemBlobUrls] = useState(null);
   const [error, setError] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [totalTime, setTotalTime] = useState(null);
@@ -53,21 +56,21 @@ export default function AudioSeparator() {
   const doneRef = useRef(false);
   const mountedRef = useRef(true);
 
-  // Check if server is reachable
+  // Check server availability (web only)
   useEffect(() => {
     mountedRef.current = true;
     let cancelled = false;
 
-    async function checkServer() {
-      try {
-        await api.get('/health', { timeout: 3000 });
-        if (!cancelled) setServerAvailable(true);
-      } catch {
-        if (!cancelled) setServerAvailable(false);
-      }
+    if (!isElectron) {
+      (async () => {
+        try {
+          await api.get('/health', { timeout: 3000 });
+          if (!cancelled) setServerAvailable(true);
+        } catch {
+          if (!cancelled) setServerAvailable(false);
+        }
+      })();
     }
-
-    checkServer();
 
     return () => {
       cancelled = true;
@@ -144,23 +147,35 @@ export default function AudioSeparator() {
     setFile(selected);
     setError(null);
     setUploadedFile(null);
-    setIsUploading(true);
+    setStemBlobUrls(null);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', selected);
-      const { data } = await api.post('/audio/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+    if (isElectron) {
+      // In Electron, skip server upload — just store local file info
+      setUploadedFile({
+        id: 'local',
+        originalName: selected.name,
+        fileSize: selected.size,
+        duration: 0,
       });
-      setUploadedFile(data.data);
-    } catch (err) {
-      setError(
-        err.response?.data?.error?.message ||
-        'Upload failed — make sure the backend server is running'
-      );
-      setFile(null);
-    } finally {
-      setIsUploading(false);
+    } else {
+      // Web: upload to server
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', selected);
+        const { data } = await api.post('/audio/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        setUploadedFile(data.data);
+      } catch (err) {
+        setError(
+          err.response?.data?.error?.message ||
+          'Upload failed — make sure the backend server is running'
+        );
+        setFile(null);
+      } finally {
+        setIsUploading(false);
+      }
     }
   }
 
@@ -177,19 +192,64 @@ export default function AudioSeparator() {
     const est = Math.max(duration * mult, 15);
     startTimer(est);
 
-    try {
-      const { data } = await api.post('/audio/separate', {
-        fileId: uploadedFile.id,
-        model,
-      });
+    if (isElectron) {
+      // Electron: use local IPC
+      try {
+        const inputPath = file.path; // Electron File objects have .path
+        const outputDir = inputPath.replace(/\.[^.]+$/, '') + '_stems';
 
-      const newJobId = data.data.jobId;
-      setJobId(newJobId);
-      startPolling(newJobId);
-    } catch (err) {
-      stopTimer();
-      setError(err.response?.data?.error?.message || 'Failed to start separation');
-      setStep(STEPS.INPUT);
+        // Listen for progress
+        const removeListener = window.electronAPI.onProgress(({ type, progress: p }) => {
+          if (type === 'separate' && mountedRef.current) {
+            setProgress(p);
+            if (p < 10) setStatusText('Loading model...');
+            else if (p < 85) setStatusText('Separating audio...');
+            else if (p < 100) setStatusText('Saving stems...');
+          }
+        });
+
+        const result = await window.electronAPI.separateAudio(inputPath, outputDir, model);
+        removeListener();
+        stopTimer();
+
+        // Read stem files into blobs for playback
+        const blobMap = {};
+        for (const stem of result.stems) {
+          try {
+            const buffer = await window.electronAPI.readFile(stem.path);
+            const blob = new Blob([buffer], { type: 'audio/wav' });
+            blobMap[stem.name] = URL.createObjectURL(blob);
+          } catch (e) {
+            console.error(`Failed to read stem ${stem.name}:`, e);
+          }
+        }
+
+        setStems(result.stems);
+        setStemBlobUrls(blobMap);
+        setProgress(100);
+        setStatusText('Complete!');
+        setStep(STEPS.RESULTS);
+      } catch (err) {
+        stopTimer();
+        setError(err.message || 'Separation failed');
+        setStep(STEPS.INPUT);
+      }
+    } else {
+      // Web: use server API
+      try {
+        const { data } = await api.post('/audio/separate', {
+          fileId: uploadedFile.id,
+          model,
+        });
+
+        const newJobId = data.data.jobId;
+        setJobId(newJobId);
+        startPolling(newJobId);
+      } catch (err) {
+        stopTimer();
+        setError(err.response?.data?.error?.message || 'Failed to start separation');
+        setStep(STEPS.INPUT);
+      }
     }
   }
 
@@ -200,12 +260,19 @@ export default function AudioSeparator() {
       pollRef.current = null;
     }
     stopTimer();
+
+    // Revoke stem blob URLs
+    if (stemBlobUrls) {
+      Object.values(stemBlobUrls).forEach((url) => URL.revokeObjectURL(url));
+    }
+
     setStep(STEPS.INPUT);
     setFile(null);
     setUploadedFile(null);
     setJobId(null);
     setProgress(0);
     setStems([]);
+    setStemBlobUrls(null);
     setError(null);
     setStatusText('');
     setElapsed(0);
@@ -229,8 +296,8 @@ export default function AudioSeparator() {
       title="Audio Separator"
       description="Split any song into individual stems using AI"
     >
-      {/* Server unavailable notice */}
-      {serverAvailable === false && (
+      {/* Server unavailable notice (web only, not Electron) */}
+      {!isElectron && serverAvailable === false && (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-600 dark:bg-amber-500/10">
           <ServerOff size={20} className="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
           <div>
@@ -239,8 +306,7 @@ export default function AudioSeparator() {
             </p>
             <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
               Audio separation uses AI models (Demucs) that require the backend server with Python and Redis.
-              Start the server with <code className="bg-amber-200/50 dark:bg-amber-500/20 px-1 rounded">npm run dev</code> from the project root,
-              or use the desktop app for local processing.
+              Start the server with <code className="bg-amber-200/50 dark:bg-amber-500/20 px-1 rounded">npm run dev</code> from the project root.
             </p>
           </div>
         </div>
@@ -383,8 +449,17 @@ export default function AudioSeparator() {
             </div>
           )}
 
-          <StemPlayer stems={stems} baseUrl={stemBaseUrl} />
-          <DownloadPanel stems={stems} baseUrl={stemBaseUrl} fileName={file?.name || uploadedFile?.originalName} />
+          <StemPlayer
+            stems={stems}
+            baseUrl={stemBaseUrl}
+            preloadedBlobUrls={stemBlobUrls}
+          />
+          <DownloadPanel
+            stems={stems}
+            baseUrl={stemBaseUrl}
+            fileName={file?.name || uploadedFile?.originalName}
+            preloadedBlobUrls={stemBlobUrls}
+          />
 
           <button
             onClick={handleReset}
