@@ -6,25 +6,14 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
+// Watch the monorepo root so shared packages are visible
 config.watchFolders = [monorepoRoot];
 
-// Only look in mobile's node_modules first, then monorepo root
+// Resolve from mobile's node_modules first (isolated from workspaces),
+// then fall back to monorepo root for shared packages if needed.
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(monorepoRoot, 'node_modules'),
 ];
-
-// Force react/react-native to always resolve from mobile's node_modules.
-// This prevents duplicate React instances when packages from root
-// node_modules try to import react.
-const mobileNodeModules = path.resolve(projectRoot, 'node_modules');
-
-config.resolver.extraNodeModules = {
-  react: path.resolve(mobileNodeModules, 'react'),
-  'react-native': path.resolve(mobileNodeModules, 'react-native'),
-};
-
-// Block root's react from being resolved by disabling hierarchical lookup
-config.resolver.disableHierarchicalLookup = true;
 
 module.exports = config;

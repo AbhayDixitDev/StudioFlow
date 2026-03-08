@@ -1,17 +1,47 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 const SERVER_URL_KEY = 'studioflow_server_url';
 const TOKEN_KEY = 'studioflow_token';
 
-const DEFAULT_URL = Platform.select({
-  android: 'http://10.0.2.2:5000/api',
-  ios: 'http://localhost:5000/api',
-  default: 'http://localhost:5000/api',
-});
+// Auto-detect the dev machine's IP from Expo's debuggerHost.
+function getAutoDetectedURL() {
+  try {
+    const debuggerHost =
+      Constants.expoConfig?.hostUri ||
+      Constants.manifest?.debuggerHost ||
+      Constants.manifest2?.extra?.expoGo?.debuggerHost;
+    if (debuggerHost) {
+      const ip = debuggerHost.split(':')[0];
+      if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+        return `http://${ip}:5000/api`;
+      }
+    }
+  } catch {}
+  return 'http://10.0.2.2:5000/api';
+}
 
-let baseURL = DEFAULT_URL;
+let baseURL = getAutoDetectedURL();
+let _serverOnline = null; // null = unknown, true/false = checked
+
+export async function checkServerOnline() {
+  try {
+    const url = baseURL.replace(/\/api$/, '') + '/api/health';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(url, { method: 'GET', signal: controller.signal });
+    clearTimeout(timeout);
+    _serverOnline = res.ok;
+  } catch {
+    _serverOnline = false;
+  }
+  return _serverOnline;
+}
+
+export function isServerOnline() {
+  return _serverOnline === true;
+}
 
 async function getBaseURL() {
   const stored = await AsyncStorage.getItem(SERVER_URL_KEY);
@@ -42,6 +72,7 @@ export async function setServerURL(url) {
   const normalized = url.endsWith('/api') ? url : `${url}/api`;
   await AsyncStorage.setItem(SERVER_URL_KEY, normalized);
   baseURL = normalized;
+  _serverOnline = null;
 }
 
 export async function getServerURL() {

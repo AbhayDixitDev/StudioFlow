@@ -34,9 +34,9 @@ export default function HomeScreen({ navigation }) {
         </View>
         <TouchableOpacity
           style={[styles.profileBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={() => navigation.navigate('Auth')}
+          onPress={() => navigation.navigate('Settings')}
         >
-          <Ionicons name="person" size={18} color={colors.textMuted} />
+          <Ionicons name="settings-outline" size={18} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
 

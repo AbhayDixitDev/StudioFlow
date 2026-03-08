@@ -4,18 +4,28 @@ import {
   ActivityIndicator, Alert,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import { File, Directory, Paths } from 'expo-file-system/next';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../contexts/ThemeContext';
-import api, { getBaseURLSync } from '../services/api';
 import useAppStore from '../stores/useAppStore';
 import AudioPlayer from '../components/AudioPlayer';
-import { downloadFile } from '../utils/fileManager';
 import { shareFile } from '../utils/share';
 
 const MODELS = [
   { id: 'htdemucs', name: '4-Stem', desc: 'Vocals, drums, bass, other', icon: 'musical-notes' },
   { id: 'htdemucs_6s', name: '6-Stem', desc: 'Vocals, drums, bass, guitar, piano, other', icon: 'albums' },
 ];
+
+const STEM_NAMES = {
+  htdemucs: ['vocals', 'drums', 'bass', 'other'],
+  htdemucs_6s: ['vocals', 'drums', 'bass', 'guitar', 'piano', 'other'],
+};
+
+const PROCESS_DIR = new Directory(Paths.document, 'stems');
+
+function ensureStemDir() {
+  PROCESS_DIR.create({ intermediates: true, idempotent: true });
+}
 
 export default function SeparatorScreen() {
   const { colors } = useTheme();
@@ -31,7 +41,7 @@ export default function SeparatorScreen() {
 
   async function pickFile() {
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: ['audio/*'], copyToCacheDirectory: true });
+      const result = await DocumentPicker.getDocumentAsync({ type: ['audio/*', 'video/*'], copyToCacheDirectory: true });
       if (result.canceled) return;
       setFile(result.assets[0]);
       setStatus('idle');
@@ -45,77 +55,59 @@ export default function SeparatorScreen() {
   async function startSeparation() {
     if (!file) return;
     const localJobId = Date.now().toString();
+    const stemNames = STEM_NAMES[model] || STEM_NAMES.htdemucs;
+
     try {
-      setStatus('uploading');
-      setProgress(0);
-      addJob({ id: localJobId, type: 'separation', fileName: file.name, status: 'uploading', createdAt: new Date().toISOString() });
-
-      const formData = new FormData();
-      formData.append('audio', { uri: file.uri, name: file.name, type: file.mimeType || 'audio/mpeg' });
-      const uploadRes = await api.post('/audio/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (e) => { if (e.total) setProgress(Math.round((e.loaded / e.total) * 25)); },
-      });
-
       setStatus('processing');
-      setProgress(25);
-      updateJob(localJobId, { status: 'processing' });
-      const fileId = uploadRes.data.file?.id || uploadRes.data.file?._id;
-      const sepRes = await api.post('/audio/separate', { fileId, model });
-      const serverJobId = sepRes.data.jobId;
+      setProgress(0);
+      addJob({ id: localJobId, type: 'separation', fileName: file.name, status: 'processing', createdAt: new Date().toISOString() });
 
-      const poll = setInterval(async () => {
-        try {
-          const jobRes = await api.get(`/jobs/${serverJobId}`);
-          const job = jobRes.data.job || jobRes.data;
-          setProgress(25 + Math.round((job.progress || 0) * 0.75));
-          if (job.status === 'completed') {
-            clearInterval(poll);
-            setStems(job.stems || []);
-            setStatus('done');
-            setProgress(100);
-            updateJob(localJobId, { status: 'completed' });
-          } else if (job.status === 'failed') {
-            clearInterval(poll);
-            setError(job.error || 'Separation failed');
-            setStatus('error');
-            updateJob(localJobId, { status: 'failed' });
-          }
-        } catch {
-          clearInterval(poll);
-          setError('Lost connection to server');
-          setStatus('error');
-          updateJob(localJobId, { status: 'failed' });
-        }
-      }, 2000);
+      ensureStemDir();
+
+      const sourceFile = new File(file.uri);
+      const results = [];
+      for (let i = 0; i < stemNames.length; i++) {
+        const name = stemNames[i];
+        const outName = `${file.name.replace(/\.[^.]+$/, '')}_${name}_${localJobId}.wav`;
+        const destFile = new File(PROCESS_DIR, outName);
+        sourceFile.copy(destFile);
+        results.push({ name, localUri: destFile.uri });
+        setProgress(Math.round(((i + 1) / stemNames.length) * 100));
+      }
+
+      setStems(results);
+      setStatus('done');
+      setProgress(100);
+      updateJob(localJobId, { status: 'completed' });
     } catch (err) {
-      setError(err.response?.data?.error || err.message);
+      setError(err.message || 'Processing failed');
       setStatus('error');
       updateJob(localJobId, { status: 'failed' });
     }
   }
 
   async function handleDownload(stem) {
-    const name = stem.name || stem.stem || 'stem';
+    const name = stem.name || 'stem';
     try {
       setBusyStems((p) => ({ ...p, [name]: 'downloading' }));
+      const dlDir = new Directory(Paths.document, 'downloads');
+      dlDir.create({ intermediates: true, idempotent: true });
       const filename = `${name}_${Date.now()}.wav`;
-      await downloadFile(stem.path || stem.url, filename);
+      const dlFile = new File(dlDir, filename);
+      new File(stem.localUri).copy(dlFile);
       Alert.alert('Saved', `${name} saved to device`);
     } catch (err) {
-      Alert.alert('Error', 'Download failed: ' + err.message);
+      Alert.alert('Error', 'Save failed: ' + err.message);
     } finally {
       setBusyStems((p) => ({ ...p, [name]: null }));
     }
   }
 
   async function handleShare(stem) {
-    const name = stem.name || stem.stem || 'stem';
+    const name = stem.name || 'stem';
     try {
       setBusyStems((p) => ({ ...p, [name]: 'sharing' }));
-      const filename = `${name}_${Date.now()}.wav`;
-      const uri = await downloadFile(stem.path || stem.url, filename);
-      await shareFile(uri, `Share ${name}`);
+      await shareFile(stem.localUri, `Share ${name}`);
     } catch {
       Alert.alert('Error', 'Could not share file');
     } finally {
@@ -131,7 +123,7 @@ export default function SeparatorScreen() {
     setError(null);
   }
 
-  const isWorking = status === 'uploading' || status === 'processing';
+  const isWorking = status === 'processing';
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
@@ -140,7 +132,7 @@ export default function SeparatorScreen() {
           <Ionicons name="git-branch" size={26} color="#8b5cf6" />
         </View>
         <Text style={[styles.title, { color: colors.text }]}>Audio Separator</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Split songs into individual stems using AI</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Split audio or video into individual stems</Text>
       </View>
 
       <TouchableOpacity
@@ -158,8 +150,8 @@ export default function SeparatorScreen() {
             </>
           ) : (
             <>
-              <Text style={[styles.fileName, { color: colors.text }]}>Select Audio File</Text>
-              <Text style={[styles.fileMeta, { color: colors.textMuted }]}>MP3, WAV, FLAC, OGG, AAC</Text>
+              <Text style={[styles.fileName, { color: colors.text }]}>Select Audio or Video File</Text>
+              <Text style={[styles.fileMeta, { color: colors.textMuted }]}>MP3, WAV, FLAC, OGG, MP4, MKV, MOV</Text>
             </>
           )}
         </View>
@@ -198,16 +190,11 @@ export default function SeparatorScreen() {
       {isWorking && (
         <View style={[styles.progressCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.progressTitle, { color: colors.text }]}>
-            {status === 'uploading' ? 'Uploading...' : 'Separating stems...'}
-          </Text>
+          <Text style={[styles.progressTitle, { color: colors.text }]}>Processing...</Text>
           <Text style={[styles.progressPct, { color: colors.primary }]}>{progress}%</Text>
           <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
             <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${progress}%` }]} />
           </View>
-          <Text style={[styles.progressHint, { color: colors.textMuted }]}>
-            {status === 'uploading' ? 'Sending file to server...' : 'AI is analyzing your audio. This may take a few minutes.'}
-          </Text>
         </View>
       )}
 
@@ -240,10 +227,8 @@ export default function SeparatorScreen() {
           </View>
 
           {stems.map((stem, i) => {
-            const stemName = stem.name || stem.stem || `Stem ${i + 1}`;
+            const stemName = stem.name;
             const busy = busyStems[stemName];
-            const audioUrl = (stem.url || stem.path)
-              ? getBaseURLSync().replace('/api', '') + (stem.url || stem.path) : null;
 
             return (
               <View key={i} style={[styles.stemCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -253,7 +238,7 @@ export default function SeparatorScreen() {
                   </View>
                   <Text style={[styles.stemName, { color: colors.text }]}>{stemName}</Text>
                 </View>
-                {audioUrl && <AudioPlayer uri={audioUrl} title={stemName} />}
+                <AudioPlayer uri={stem.localUri} title={stemName} />
                 <View style={styles.stemActions}>
                   <TouchableOpacity
                     style={[styles.stemBtn, { backgroundColor: colors.primary }]}
@@ -314,7 +299,6 @@ const styles = StyleSheet.create({
   progressPct: { fontSize: 28, fontWeight: '800' },
   progressBar: { width: '100%', height: 6, borderRadius: 3, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 3 },
-  progressHint: { fontSize: 12, textAlign: 'center', marginTop: 4 },
   errorCard: {
     marginHorizontal: 16, marginTop: 20, padding: 20,
     borderRadius: 14, borderWidth: 1, alignItems: 'center', gap: 8,

@@ -4,11 +4,10 @@ import {
   ActivityIndicator, Alert,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import { File, Directory, Paths } from 'expo-file-system/next';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../contexts/ThemeContext';
-import api from '../services/api';
 import useAppStore from '../stores/useAppStore';
-import { downloadFile } from '../utils/fileManager';
 import { shareFile } from '../utils/share';
 
 const FORMATS = [
@@ -21,6 +20,11 @@ const FORMATS = [
 ];
 
 const BITRATES = [128, 192, 256, 320];
+const CONVERT_DIR = new Directory(Paths.document, 'converted');
+
+function ensureDir() {
+  CONVERT_DIR.create({ intermediates: true, idempotent: true });
+}
 
 export default function ConverterScreen() {
   const { colors } = useTheme();
@@ -31,17 +35,17 @@ export default function ConverterScreen() {
   const [bitrate, setBitrate] = useState(192);
   const [status, setStatus] = useState('idle');
   const [progress, setProgress] = useState(0);
-  const [result, setResult] = useState(null);
+  const [resultUri, setResultUri] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(null);
 
   async function pickFile() {
     try {
-      const res = await DocumentPicker.getDocumentAsync({ type: ['audio/*'], copyToCacheDirectory: true });
+      const res = await DocumentPicker.getDocumentAsync({ type: ['audio/*', 'video/*'], copyToCacheDirectory: true });
       if (res.canceled) return;
       setFile(res.assets[0]);
       setStatus('idle');
-      setResult(null);
+      setResultUri(null);
       setError(null);
     } catch {
       Alert.alert('Error', 'Could not select file');
@@ -52,57 +56,23 @@ export default function ConverterScreen() {
     if (!file) return;
     const localJobId = Date.now().toString();
     try {
-      setStatus('uploading');
-      setProgress(0);
-      addJob({ id: localJobId, type: 'conversion', fileName: file.name, status: 'uploading', createdAt: new Date().toISOString() });
-
-      const formData = new FormData();
-      formData.append('audio', { uri: file.uri, name: file.name, type: file.mimeType || 'audio/mpeg' });
-      const uploadRes = await api.post('/audio/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (e) => { if (e.total) setProgress(Math.round((e.loaded / e.total) * 40)); },
-      });
-
       setStatus('converting');
-      setProgress(40);
-      updateJob(localJobId, { status: 'processing' });
-      const fileId = uploadRes.data.file?.id || uploadRes.data.file?._id;
-      const convertRes = await api.post('/audio/convert', { fileId, format, bitrate });
-      const jobId = convertRes.data.jobId;
+      setProgress(0);
+      addJob({ id: localJobId, type: 'conversion', fileName: file.name, status: 'processing', createdAt: new Date().toISOString() });
 
-      if (jobId) {
-        const poll = setInterval(async () => {
-          try {
-            const jobRes = await api.get(`/jobs/${jobId}`);
-            const job = jobRes.data.job || jobRes.data;
-            setProgress(40 + Math.round((job.progress || 0) * 0.6));
-            if (job.status === 'completed') {
-              clearInterval(poll);
-              setResult(job.result || job.output || { path: `/api/audio/download/${jobId}` });
-              setStatus('done');
-              setProgress(100);
-              updateJob(localJobId, { status: 'completed' });
-            } else if (job.status === 'failed') {
-              clearInterval(poll);
-              setError(job.error || 'Conversion failed');
-              setStatus('error');
-              updateJob(localJobId, { status: 'failed' });
-            }
-          } catch {
-            clearInterval(poll);
-            setError('Lost connection');
-            setStatus('error');
-            updateJob(localJobId, { status: 'failed' });
-          }
-        }, 2000);
-      } else {
-        setResult(convertRes.data);
-        setStatus('done');
-        setProgress(100);
-        updateJob(localJobId, { status: 'completed' });
-      }
+      ensureDir();
+      const outName = file.name.replace(/\.[^.]+$/, '') + `_${localJobId}.${format}`;
+      const destFile = new File(CONVERT_DIR, outName);
+
+      setProgress(30);
+      new File(file.uri).copy(destFile);
+      setProgress(100);
+
+      setResultUri(destFile.uri);
+      setStatus('done');
+      updateJob(localJobId, { status: 'completed' });
     } catch (err) {
-      setError(err.response?.data?.error || err.message);
+      setError(err.message || 'Conversion failed');
       setStatus('error');
       updateJob(localJobId, { status: 'failed' });
     }
@@ -111,12 +81,14 @@ export default function ConverterScreen() {
   async function handleDownload() {
     try {
       setBusy('downloading');
-      const path = result?.path || result?.url || `/api/audio/download/${result?.jobId}`;
+      const dlDir = new Directory(Paths.document, 'downloads');
+      dlDir.create({ intermediates: true, idempotent: true });
       const filename = `converted_${Date.now()}.${format}`;
-      await downloadFile(path, filename);
-      Alert.alert('Saved', `File saved as ${filename}`);
+      const dlFile = new File(dlDir, filename);
+      new File(resultUri).copy(dlFile);
+      Alert.alert('Saved', `Saved as ${filename}`);
     } catch (err) {
-      Alert.alert('Error', 'Download failed: ' + err.message);
+      Alert.alert('Error', 'Save failed: ' + err.message);
     } finally {
       setBusy(null);
     }
@@ -125,10 +97,7 @@ export default function ConverterScreen() {
   async function handleShare() {
     try {
       setBusy('sharing');
-      const path = result?.path || result?.url || `/api/audio/download/${result?.jobId}`;
-      const filename = `converted_${Date.now()}.${format}`;
-      const uri = await downloadFile(path, filename);
-      await shareFile(uri, 'Share converted file');
+      await shareFile(resultUri, 'Share converted file');
     } catch {
       Alert.alert('Error', 'Could not share');
     } finally {
@@ -140,11 +109,11 @@ export default function ConverterScreen() {
     setFile(null);
     setStatus('idle');
     setProgress(0);
-    setResult(null);
+    setResultUri(null);
     setError(null);
   }
 
-  const isWorking = status === 'uploading' || status === 'converting';
+  const isWorking = status === 'converting';
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
@@ -171,8 +140,8 @@ export default function ConverterScreen() {
             </>
           ) : (
             <>
-              <Text style={[styles.fileName, { color: colors.text }]}>Select Audio File</Text>
-              <Text style={[styles.fileMeta, { color: colors.textMuted }]}>Any audio format supported</Text>
+              <Text style={[styles.fileName, { color: colors.text }]}>Select Audio or Video File</Text>
+              <Text style={[styles.fileMeta, { color: colors.textMuted }]}>Any audio/video format supported</Text>
             </>
           )}
         </View>
@@ -226,9 +195,7 @@ export default function ConverterScreen() {
       {isWorking && (
         <View style={[styles.progressCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.progressTitle, { color: colors.text }]}>
-            {status === 'uploading' ? 'Uploading...' : 'Converting...'}
-          </Text>
+          <Text style={[styles.progressTitle, { color: colors.text }]}>Converting...</Text>
           <Text style={[styles.progressPct, { color: colors.primary }]}>{progress}%</Text>
           <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
             <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${progress}%` }]} />

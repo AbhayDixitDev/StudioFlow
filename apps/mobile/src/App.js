@@ -1,23 +1,18 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
-import OfflineBanner from './components/OfflineBanner';
-import useNetworkStatus from './hooks/useNetworkStatus';
 import useAppStore from './stores/useAppStore';
 import HomeScreen from './screens/HomeScreen';
 import SeparatorScreen from './screens/SeparatorScreen';
 import ConverterScreen from './screens/ConverterScreen';
 import CutterScreen from './screens/CutterScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import AuthScreen from './screens/AuthScreen';
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
 
 const TAB_ICONS = {
   Home: ['home', 'home-outline'],
@@ -71,7 +66,6 @@ export default function App() {
 
 function AppContent() {
   const { isDark, colors } = useTheme();
-  const { isOnline } = useNetworkStatus();
   const loadJobs = useAppStore((s) => s.loadJobs);
 
   useEffect(() => {
@@ -96,15 +90,7 @@ function AppContent() {
     >
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <StatusBar style={isDark ? 'light' : 'dark'} />
-        <OfflineBanner visible={!isOnline} />
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="MainTabs" component={TabNavigator} />
-          <Stack.Screen
-            name="Auth"
-            component={AuthScreen}
-            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-          />
-        </Stack.Navigator>
+        <TabNavigator />
       </View>
     </NavigationContainer>
   );

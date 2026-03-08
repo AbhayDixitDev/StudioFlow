@@ -7,7 +7,8 @@ import { Server as SocketIOServer } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { env } from './config/env.js';
 import { connectDB } from './config/db.js';
-import { ensureDirectories } from './config/storage.js';
+import { ensureDirectories, DIRS } from './config/storage.js';
+import path from 'path';
 import { defaultLimiter } from './middleware/rateLimit.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
@@ -26,7 +27,7 @@ const PORT = env.PORT;
 // Socket.IO
 const io = new SocketIOServer(server, {
   cors: {
-    origin: env.CORS_ORIGIN,
+    origin: true,
     credentials: true,
   },
 });
@@ -59,12 +60,16 @@ io.on('connection', (socket) => {
 
 // Security
 app.use(helmet());
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 app.use(defaultLimiter);
 
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve processed files (stems, converted, cut) so mobile app can access them
+const storageBase = path.resolve(DIRS.uploads, '..');
+app.use('/files', express.static(storageBase));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -94,8 +99,8 @@ async function start() {
   // Start file cleanup cron (Phase 216)
   startCleanupCron();
 
-  server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT} (accessible on all network interfaces)`);
   });
 }
 

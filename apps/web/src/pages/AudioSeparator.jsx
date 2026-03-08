@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ToolPage, FileDropzone } from '@studioflow/ui';
-import { Music, AlertCircle, Clock } from 'lucide-react';
+import { Music, AlertCircle, Clock, ServerOff } from 'lucide-react';
 import StemSelector from '../features/separator/StemSelector.jsx';
 import StemPlayer from '../features/separator/StemPlayer.jsx';
 import DownloadPanel from '../features/separator/DownloadPanel.jsx';
@@ -13,7 +13,6 @@ const STEPS = {
   RESULTS: 'results',
 };
 
-// CPU time multipliers (seconds of processing per second of audio)
 const MODEL_TIME_MULT = {
   htdemucs: 2.0,
   htdemucs_6s: 3.0,
@@ -47,23 +46,37 @@ export default function AudioSeparator() {
   const [error, setError] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [totalTime, setTotalTime] = useState(null);
+  const [serverAvailable, setServerAvailable] = useState(null);
   const pollRef = useRef(null);
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
   const doneRef = useRef(false);
   const mountedRef = useRef(true);
 
-  // Cleanup on unmount
+  // Check if server is reachable
   useEffect(() => {
     mountedRef.current = true;
+    let cancelled = false;
+
+    async function checkServer() {
+      try {
+        await api.get('/health', { timeout: 3000 });
+        if (!cancelled) setServerAvailable(true);
+      } catch {
+        if (!cancelled) setServerAvailable(false);
+      }
+    }
+
+    checkServer();
+
     return () => {
+      cancelled = true;
       mountedRef.current = false;
       if (pollRef.current) clearInterval(pollRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
-  // Elapsed time ticker (every 1s while processing)
   function startTimer(estimatedTotal) {
     startTimeRef.current = Date.now();
     setElapsed(0);
@@ -141,7 +154,10 @@ export default function AudioSeparator() {
       });
       setUploadedFile(data.data);
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Upload failed');
+      setError(
+        err.response?.data?.error?.message ||
+        'Upload failed — make sure the backend server is running'
+      );
       setFile(null);
     } finally {
       setIsUploading(false);
@@ -156,8 +172,7 @@ export default function AudioSeparator() {
     setStatusText('Queuing...');
     setStep(STEPS.PROCESSING);
 
-    // Estimate total time based on audio duration and model
-    const duration = uploadedFile.duration || 180; // fallback 3min
+    const duration = uploadedFile.duration || 180;
     const mult = MODEL_TIME_MULT[model] || 3;
     const est = Math.max(duration * mult, 15);
     startTimer(est);
@@ -197,14 +212,12 @@ export default function AudioSeparator() {
     setTotalTime(null);
   }
 
-  // Compute remaining time from progress and elapsed
   const remaining = progress > 2 && elapsed > 5
     ? Math.max(Math.round((elapsed / progress) * (100 - progress)), 0)
     : totalTime
       ? Math.max(totalTime - elapsed, 0)
       : null;
 
-  // Estimated time shown before starting
   const estimatedTime = uploadedFile?.duration
     ? Math.max((uploadedFile.duration) * (MODEL_TIME_MULT[model] || 3), 15)
     : null;
@@ -216,6 +229,23 @@ export default function AudioSeparator() {
       title="Audio Separator"
       description="Split any song into individual stems using AI"
     >
+      {/* Server unavailable notice */}
+      {serverAvailable === false && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-600 dark:bg-amber-500/10">
+          <ServerOff size={20} className="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+              Backend Server Required
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+              Audio separation uses AI models (Demucs) that require the backend server with Python and Redis.
+              Start the server with <code className="bg-amber-200/50 dark:bg-amber-500/20 px-1 rounded">npm run dev</code> from the project root,
+              or use the desktop app for local processing.
+            </p>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
           <AlertCircle size={16} />
@@ -264,7 +294,6 @@ export default function AudioSeparator() {
 
           <StemSelector value={model} onChange={setModel} />
 
-          {/* Estimated time before starting */}
           {uploadedFile && estimatedTime && (
             <div className="flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-gray-500">
               <Clock size={14} />
@@ -314,7 +343,6 @@ export default function AudioSeparator() {
             {statusText}
           </p>
 
-          {/* Time info */}
           <div className="flex items-center gap-6 text-xs text-gray-400 dark:text-gray-500">
             <div className="flex items-center gap-1.5">
               <Clock size={13} />
@@ -327,7 +355,6 @@ export default function AudioSeparator() {
             )}
           </div>
 
-          {/* File info reminder */}
           {uploadedFile && (
             <p className="text-[11px] text-gray-400 dark:text-gray-500 opacity-60 truncate max-w-sm" title={file?.name || uploadedFile.originalName}>
               {file?.name || uploadedFile.originalName}

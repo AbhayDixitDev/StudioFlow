@@ -1,11 +1,7 @@
-/**
- * Phase 203: Offline detection hook.
- * Uses NetInfo to track connectivity and shows an offline banner when disconnected.
- */
 import { useState, useEffect } from 'react';
+import { getBaseURLSync } from '../services/api';
 
-// Lightweight polling fallback (no native module required)
-export default function useNetworkStatus(serverUrl) {
+export default function useNetworkStatus() {
   const [isOnline, setIsOnline] = useState(true);
   const [isServerReachable, setIsServerReachable] = useState(true);
 
@@ -16,10 +12,7 @@ export default function useNetworkStatus(serverUrl) {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
-        // Simple health check against server
-        const url = serverUrl
-          ? serverUrl.replace(/\/api$/, '') + '/api/health'
-          : 'http://10.0.2.2:5000/api/health';
+        const url = getBaseURLSync().replace(/\/api$/, '') + '/api/health';
         const res = await fetch(url, { method: 'GET', signal: controller.signal });
         clearTimeout(timeout);
         if (!cancelled) {
@@ -40,7 +33,7 @@ export default function useNetworkStatus(serverUrl) {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [serverUrl]);
+  }, []);
 
   return { isOnline, isServerReachable };
 }

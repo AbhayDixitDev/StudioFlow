@@ -3,17 +3,15 @@ import { ToolPage, FileDropzone } from '@studioflow/ui';
 import {
   Download,
   CheckCircle,
-  Link as LinkIcon,
   Upload,
   AlertCircle,
   Clock,
   Music,
+  ServerOff,
 } from 'lucide-react';
 import FormatPicker from '../features/converter/FormatPicker.jsx';
-import api from '../services/api.js';
-import { formatFileSize, isSupportedVideoUrl } from '@studioflow/shared';
-
-const TABS = ['Upload File', 'Paste URL'];
+import { useFFmpeg } from '../hooks/useFFmpeg.js';
+import { formatFileSize } from '@studioflow/shared';
 
 function formatDuration(seconds) {
   if (!seconds || seconds < 0) return '--:--';
@@ -23,27 +21,16 @@ function formatDuration(seconds) {
 }
 
 export default function VideoToAudio() {
-  const [activeTab, setActiveTab] = useState(0);
   const [outputFormat, setOutputFormat] = useState('mp3');
-
-  // Upload state
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-
-  // URL state
-  const [url, setUrl] = useState('');
-  const [urlError, setUrlError] = useState('');
-
-  // Processing state
+  const [file, setFile] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [statusText, setStatusText] = useState('');
-  const [result, setResult] = useState(null);
+  const [resultBlob, setResultBlob] = useState(null);
   const [error, setError] = useState(null);
-
-  // Timer state
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
+
+  const ffmpeg = useFFmpeg();
 
   useEffect(() => {
     return () => {
@@ -67,122 +54,60 @@ export default function VideoToAudio() {
     }
   }
 
-  const handleFileDrop = async (files) => {
+  const handleFileDrop = (files) => {
     const selected = files[0];
     if (!selected) return;
-
+    setFile(selected);
     setError(null);
-    setResult(null);
-    setIsUploading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', selected);
-      const { data } = await api.post('/audio/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setUploadedFile(data.data);
-    } catch (err) {
-      setError(err.response?.data?.error?.message || 'Upload failed');
-    } finally {
-      setIsUploading(false);
-    }
+    setResultBlob(null);
   };
 
   const handleExtract = async () => {
-    if (!uploadedFile) return;
+    if (!file) return;
 
     setIsProcessing(true);
     setError(null);
-    setStatusText('Extracting audio from video...');
     startTimer();
 
     try {
-      const { data } = await api.post('/audio/extract', {
-        fileId: uploadedFile.id,
-        outputFormat,
-      });
+      // Use FFmpeg WASM to extract audio from video
+      const blob = await ffmpeg.convert(file, outputFormat, {});
       stopTimer();
-      setResult({ type: 'extract', ...data.data });
+      setResultBlob(blob);
     } catch (err) {
       stopTimer();
-      setError(err.response?.data?.error?.message || 'Extraction failed');
+      console.error('Extraction error:', err);
+      setError(err.message || 'Extraction failed');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleFromUrl = async () => {
-    if (!url.trim()) return;
-
-    if (!isSupportedVideoUrl(url)) {
-      setUrlError('Please enter a valid YouTube, Vimeo, or direct video URL');
-      return;
-    }
-
-    setUrlError('');
-    setIsProcessing(true);
-    setError(null);
-    setStatusText('Downloading from URL...');
-    startTimer();
-
-    try {
-      const { data } = await api.post('/audio/from-url', { url, outputFormat });
-      stopTimer();
-      setResult({ type: 'url', ...data.data });
-    } catch (err) {
-      stopTimer();
-      setError(err.response?.data?.error?.message || 'Download failed');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleDownload = async () => {
-    try {
-      let downloadUrl;
-      if (result.type === 'extract' && result.jobId) {
-        downloadUrl = `/audio/download/${result.jobId}`;
-      } else if (result.id) {
-        downloadUrl = `/audio/files/${result.id}/download`;
-      } else {
-        return;
-      }
-
-      const response = await api.get(downloadUrl, { responseType: 'blob' });
-      const blobUrl = URL.createObjectURL(response.data);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-
-      const name =
-        result.audioFile?.originalName ||
-        result.originalName ||
-        `audio.${outputFormat}`;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-      setError('Download failed: ' + (err.message || 'Unknown error'));
-    }
+  const handleDownload = () => {
+    if (!resultBlob) return;
+    const url = URL.createObjectURL(resultBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    const baseName = file.name.replace(/\.[^.]+$/, '');
+    a.download = `${baseName}.${outputFormat}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const reset = () => {
-    setUploadedFile(null);
-    setResult(null);
+    setFile(null);
+    setResultBlob(null);
     setError(null);
-    setUrl('');
-    setUrlError('');
     setElapsed(0);
-    setStatusText('');
     stopTimer();
   };
 
   return (
     <ToolPage
       title="Video to Audio"
-      description="Extract audio from video files or YouTube URLs"
+      description="Extract audio from video files — processed locally in your browser"
     >
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Error */}
@@ -199,59 +124,37 @@ export default function VideoToAudio() {
           </div>
         )}
 
-        {/* Tabs */}
-        {!result && !isProcessing && (
-          <div className="flex gap-2">
-            {TABS.map((tab, i) => (
-              <button
-                key={tab}
-                onClick={() => {
-                  setActiveTab(i);
-                  reset();
-                }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-                  ${
-                    activeTab === i
-                      ? 'bg-violet-500 text-white'
-                      : 'bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400'
-                  }`}
-              >
-                {i === 0 ? <Upload size={16} /> : <LinkIcon size={16} />}
-                {tab}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Upload tab */}
-        {activeTab === 0 && !result && !isProcessing && (
+        {/* Upload section */}
+        {!resultBlob && !isProcessing && (
           <>
-            {!uploadedFile && (
+            {!file && (
               <FileDropzone
                 accept="video/*"
                 onDrop={handleFileDrop}
-                loading={isUploading}
               />
             )}
 
-            {uploadedFile && (
+            {file && (
               <div className="p-4 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/50">
                 <div className="flex items-center gap-3">
                   <Music size={20} className="text-violet-500" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
-                      {uploadedFile.originalName}
+                      {file.name}
                     </p>
                     <p className="text-sm text-gray-400 dark:text-gray-500">
-                      {uploadedFile.format?.toUpperCase()} &middot;{' '}
-                      {formatFileSize(uploadedFile.fileSize)}
+                      {file.name.split('.').pop().toUpperCase()} &middot;{' '}
+                      {formatFileSize(file.size)}
                     </p>
                   </div>
+                  <button onClick={reset} className="text-sm text-violet-400 hover:underline">
+                    Change
+                  </button>
                 </div>
               </div>
             )}
 
-            {uploadedFile && (
+            {file && (
               <>
                 <div>
                   <h3 className="text-sm font-medium mb-3 text-gray-900 dark:text-gray-100">
@@ -267,59 +170,16 @@ export default function VideoToAudio() {
                   disabled={isProcessing}
                   className="w-full rounded-lg !bg-violet-600 hover:!bg-violet-700 px-6 py-3 text-sm font-semibold !text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Extract Audio
+                  {ffmpeg.isLoading ? 'Loading FFmpeg...' : 'Extract Audio'}
                 </button>
               </>
             )}
           </>
         )}
 
-        {/* URL tab */}
-        {activeTab === 1 && !result && !isProcessing && (
-          <>
-            <div>
-              <label className="block text-sm font-medium mb-1.5 text-gray-900 dark:text-gray-100">
-                Video URL
-              </label>
-              <input
-                type="text"
-                placeholder="https://www.youtube.com/watch?v=..."
-                value={url}
-                onChange={(e) => {
-                  setUrl(e.target.value);
-                  setUrlError('');
-                }}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
-              />
-              {urlError && (
-                <p className="mt-1.5 text-xs text-red-500">{urlError}</p>
-              )}
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium mb-3 text-gray-900 dark:text-gray-100">
-                Output Format
-              </h3>
-              <FormatPicker
-                selected={outputFormat}
-                onSelect={setOutputFormat}
-              />
-            </div>
-
-            <button
-              onClick={handleFromUrl}
-              disabled={!url.trim() || isProcessing}
-              className="w-full rounded-lg !bg-violet-600 hover:!bg-violet-700 px-6 py-3 text-sm font-semibold !text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Download & Extract Audio
-            </button>
-          </>
-        )}
-
         {/* Processing */}
         {isProcessing && (
           <div className="flex flex-col items-center justify-center py-16 space-y-6">
-            {/* Spinner */}
             <div className="relative flex h-28 w-28 items-center justify-center">
               <svg
                 className="h-28 w-28 animate-spin"
@@ -327,57 +187,45 @@ export default function VideoToAudio() {
                 style={{ animationDuration: '2s' }}
               >
                 <circle
-                  cx="60"
-                  cy="60"
-                  r="52"
-                  fill="none"
-                  stroke="currentColor"
+                  cx="60" cy="60" r="52"
+                  fill="none" stroke="currentColor"
                   className="text-gray-200 dark:text-gray-700"
                   strokeWidth="8"
                 />
                 <circle
-                  cx="60"
-                  cy="60"
-                  r="52"
-                  fill="none"
-                  stroke="currentColor"
+                  cx="60" cy="60" r="52"
+                  fill="none" stroke="currentColor"
                   className="text-violet-500"
                   strokeWidth="8"
                   strokeLinecap="round"
                   strokeDasharray={`${2 * Math.PI * 52 * 0.3} ${2 * Math.PI * 52 * 0.7}`}
                 />
               </svg>
+              {ffmpeg.progress > 0 && (
+                <span className="absolute text-lg font-bold text-gray-900 dark:text-gray-100">
+                  {ffmpeg.progress}%
+                </span>
+              )}
             </div>
 
             <p className="text-sm font-medium text-gray-400 dark:text-gray-500">
-              {statusText}
+              {ffmpeg.isLoading ? 'Loading FFmpeg engine...' : 'Extracting audio...'}
             </p>
 
-            {/* Time info */}
             <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
               <Clock size={13} />
               <span>Elapsed: {formatDuration(elapsed)}</span>
             </div>
-
-            {activeTab === 1 && (
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 opacity-60 truncate max-w-sm">
-                {url}
-              </p>
-            )}
           </div>
         )}
 
         {/* Result */}
-        {result && (
+        {resultBlob && (
           <div className="space-y-5">
-            {/* Success header */}
             <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 dark:border-green-700 dark:bg-green-500/10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <CheckCircle
-                    size={18}
-                    className="text-green-600 dark:text-green-400 flex-shrink-0"
-                  />
+                  <CheckCircle size={18} className="text-green-600 dark:text-green-400 flex-shrink-0" />
                   <span className="text-sm font-medium text-green-800 dark:text-green-300 truncate">
                     Audio extracted successfully!
                   </span>
@@ -389,39 +237,26 @@ export default function VideoToAudio() {
               </div>
             </div>
 
-            {/* File info */}
             <div className="rounded-lg border border-gray-200 bg-white dark:bg-white/5 px-4 py-3 dark:border-gray-700">
               <div className="flex items-center gap-3">
                 <Music size={20} className="text-violet-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p
-                    className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
-                    title={
-                      result.audioFile?.originalName || result.originalName
-                    }
-                  >
-                    {result.audioFile?.originalName || result.originalName}
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                    {file.name.replace(/\.[^.]+$/, '')}.{outputFormat}
                   </p>
                   <p className="text-xs text-gray-400 dark:text-gray-500">
-                    {outputFormat.toUpperCase()}
-                    {(result.audioFile?.fileSize || result.fileSize) &&
-                      ` - ${formatFileSize(result.audioFile?.fileSize || result.fileSize)}`}
-                    {(result.audioFile?.duration || result.duration) > 0 &&
-                      ` - ${formatDuration(result.audioFile?.duration || result.duration)}`}
+                    {outputFormat.toUpperCase()} &middot; {formatFileSize(resultBlob.size)}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Download button */}
             <button
               onClick={handleDownload}
               className="w-full rounded-lg bg-violet-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-600 flex items-center justify-center gap-2"
             >
               <Download size={18} />
-              Download {outputFormat.toUpperCase()}
-              {(result.audioFile?.fileSize || result.fileSize) &&
-                ` (${formatFileSize(result.audioFile?.fileSize || result.fileSize)})`}
+              Download {outputFormat.toUpperCase()} ({formatFileSize(resultBlob.size)})
             </button>
 
             <button
