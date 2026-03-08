@@ -11,18 +11,11 @@ files:
   - renderer/**/*
   - package.json
 
-extraResources:
-  - from: resources/ffmpeg
-    to: ffmpeg
-    filter:
-      - "**/*"
-
 win:
   target:
     - target: nsis
       arch:
         - x64
-  icon: resources/icon.png
 
 nsis:
   oneClick: false
@@ -31,7 +24,5 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: StudioFlow
-  installerIcon: resources/icon.ico
-  uninstallerIcon: resources/icon.ico
 
 publish: null

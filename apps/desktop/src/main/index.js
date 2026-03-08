@@ -23,7 +23,7 @@ function createWindow() {
     minWidth: 800,
     minHeight: 600,
     title: 'StudioFlow',
-    icon: path.join(__dirname, '..', '..', 'resources', 'icon.png'),
+    // icon: path.join(__dirname, '..', '..', 'resources', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'index.js'),
       contextIsolation: true,

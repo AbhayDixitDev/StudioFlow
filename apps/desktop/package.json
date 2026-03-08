@@ -1,6 +1,8 @@
 {
   "name": "@studioflow/desktop",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "StudioFlow - Multimedia editing suite for audio separation, video editing, and format conversion",
+  "author": "AbhayDixitDev",
   "private": true,
   "main": "src/main/index.js",
   "scripts": {
@@ -13,7 +15,7 @@
     "electron-store": "^10.0.0"
   },
   "devDependencies": {
-    "electron": "^33.3.1",
+    "electron": "33.4.11",
     "electron-builder": "^25.1.8"
   }
 }
