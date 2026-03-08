@@ -33,6 +33,7 @@ export default function App() {
   const { token, fetchUser } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const isElectron = !!(window.electronAPI);
 
   useEffect(() => {
     if (token) fetchUser();
@@ -41,23 +42,26 @@ export default function App() {
   const authPages = ['/login', '/register'];
   const isAuthPage = authPages.includes(location.pathname);
 
-  // Auth pages — show without shell, redirect to home if already logged in
-  if (isAuthPage) {
-    if (token) {
-      const redirectTo = new URLSearchParams(location.search).get('redirect') || '/';
-      return <Navigate to={redirectTo} replace />;
+  // In Electron, skip auth entirely (local app, no server needed for auth)
+  if (!isElectron) {
+    // Auth pages — show without shell, redirect to home if already logged in
+    if (isAuthPage) {
+      if (token) {
+        const redirectTo = new URLSearchParams(location.search).get('redirect') || '/';
+        return <Navigate to={redirectTo} replace />;
+      }
+      return (
+        <ThemeProvider mode={theme} onModeChange={setTheme}>
+          <AppRouter />
+        </ThemeProvider>
+      );
     }
-    return (
-      <ThemeProvider mode={theme} onModeChange={setTheme}>
-        <AppRouter />
-      </ThemeProvider>
-    );
-  }
 
-  // Not logged in — redirect to login, preserving intended destination
-  if (!token) {
-    const redirectParam = location.pathname !== '/' ? `?redirect=${encodeURIComponent(location.pathname)}` : '';
-    return <Navigate to={`/login${redirectParam}`} replace />;
+    // Not logged in — redirect to login, preserving intended destination
+    if (!token) {
+      const redirectParam = location.pathname !== '/' ? `?redirect=${encodeURIComponent(location.pathname)}` : '';
+      return <Navigate to={`/login${redirectParam}`} replace />;
+    }
   }
 
   return (
