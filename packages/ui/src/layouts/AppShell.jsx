@@ -37,12 +37,12 @@ export function AppShell({
 
   const sidebarContent = (
     <>
-      <div className="flex items-center justify-between p-4 border-b border-[var(--glass-border)]">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
         {!collapsed && (
           <div className="flex items-center gap-2 min-w-0">
-            {logo ?? <Music className="h-6 w-6 text-[var(--accent-primary)] shrink-0" />}
-            <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
-              Audio Separator
+            {logo ?? <Music className="h-6 w-6 text-cyan-500 shrink-0" />}
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+              StudioFlow
             </span>
           </div>
         )}
@@ -51,7 +51,7 @@ export function AppShell({
             setCollapsed(!collapsed);
             setMobileOpen(false);
           }}
-          className="p-1.5 rounded-lg hover:bg-[var(--glass-hover-bg)] text-[var(--text-secondary)] hidden md:flex"
+          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hidden md:flex"
         >
           <ChevronLeft
             className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')}
@@ -59,7 +59,7 @@ export function AppShell({
         </button>
         <button
           onClick={() => setMobileOpen(false)}
-          className="p-1.5 rounded-lg hover:bg-[var(--glass-hover-bg)] text-[var(--text-secondary)] md:hidden"
+          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 md:hidden"
         >
           <X className="h-4 w-4" />
         </button>
@@ -76,9 +76,9 @@ export function AppShell({
             }}
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200',
-              activeNavId === item.id
-                ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)]'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-hover-bg)]'
+              (activeNavId === item.id || item.active)
+                ? 'bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}
             title={collapsed ? item.label : undefined}
           >
@@ -89,10 +89,10 @@ export function AppShell({
       </nav>
 
       {onThemeToggle && (
-        <div className="p-2 border-t border-[var(--glass-border)]">
+        <div className="p-2 border-t border-gray-200 dark:border-gray-800">
           <button
             onClick={onThemeToggle}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-hover-bg)] transition-colors duration-200"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
           >
             {theme === 'dark' ? (
               <Sun className="h-5 w-5 shrink-0" />
@@ -109,11 +109,11 @@ export function AppShell({
   );
 
   return (
-    <div className={cn('flex h-screen bg-[var(--bg-primary)]', className)}>
+    <div className={cn('flex h-screen bg-gray-50 dark:bg-gray-950', className)}>
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          'hidden md:flex flex-col border-r border-[var(--glass-border)] bg-[var(--bg-sidebar)] transition-all duration-300',
+          'hidden md:flex flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all duration-300',
           collapsed ? 'w-16' : 'w-60'
         )}
       >
@@ -136,7 +136,7 @@ export function AppShell({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed inset-y-0 left-0 z-50 w-60 flex flex-col border-r border-[var(--glass-border)] bg-[var(--bg-sidebar)] md:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-60 flex flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 md:hidden"
             >
               {sidebarContent}
             </motion.aside>
@@ -147,14 +147,14 @@ export function AppShell({
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile header */}
-        <header className="flex items-center gap-3 p-3 border-b border-[var(--glass-border)] md:hidden">
+        <header className="flex items-center gap-3 p-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 md:hidden">
           <button
             onClick={() => setMobileOpen(true)}
-            className="p-1.5 rounded-lg hover:bg-[var(--glass-hover-bg)] text-[var(--text-secondary)]"
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-sm font-semibold text-[var(--text-primary)]">Audio Separator</span>
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">StudioFlow</span>
         </header>
 
         <main className="flex-1 overflow-auto">{children}</main>

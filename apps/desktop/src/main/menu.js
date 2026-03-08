@@ -63,14 +63,14 @@ function createMenu() {
       label: 'Help',
       submenu: [
         {
-          label: 'About Audio Separator',
+          label: 'About StudioFlow',
           click: () => {
             const { dialog } = require('electron');
             dialog.showMessageBox({
               type: 'info',
-              title: 'About Audio Separator',
-              message: `Audio Separator v${app.getVersion()}`,
-              detail: 'AI-powered audio source separation.\nSplit any song into individual stems.',
+              title: 'About StudioFlow',
+              message: `StudioFlow v${app.getVersion()}`,
+              detail: 'Powerful audio and video tools, all in one place.',
             });
           },
         },

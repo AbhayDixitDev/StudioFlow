@@ -50,6 +50,54 @@ export function getTextAnimationState(textConfig, localTime, clipDuration) {
       break;
     }
 
+    case 'scaleIn':
+      if (t < 1) {
+        result.scale = easeOut(t);
+        result.opacity = easeOut(t);
+      }
+      break;
+
+    case 'scaleOut': {
+      const endTime = clipDuration - animDur;
+      if (localTime >= endTime) {
+        const tOut = Math.min(1, (localTime - endTime) / animDur);
+        result.scale = 1 - easeIn(tOut);
+        result.opacity = 1 - easeIn(tOut);
+      }
+      break;
+    }
+
+    case 'blurIn':
+      if (t < 1) {
+        result.opacity = easeOut(t);
+        result.blur = (1 - easeOut(t)) * 10;
+      }
+      break;
+
+    case 'rotateIn':
+      if (t < 1) {
+        result.rotation = (1 - easeOut(t)) * 360;
+        result.scale = easeOut(t);
+        result.opacity = Math.min(1, t * 2);
+      }
+      break;
+
+    case 'dropIn':
+      if (t < 1) {
+        result.offsetY = (1 - easeOutBounce(t)) * -300;
+        result.opacity = Math.min(1, t * 3);
+      }
+      break;
+
+    case 'glitch':
+      if (t < 1) {
+        const intensity = (1 - t) * 20;
+        result.offsetX = (Math.random() - 0.5) * intensity;
+        result.offsetY = (Math.random() - 0.5) * intensity * 0.5;
+        result.opacity = t > 0.1 ? 1 : t * 10;
+      }
+      break;
+
     default:
       break;
   }

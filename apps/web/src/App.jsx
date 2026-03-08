@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { ThemeProvider } from '@audio-sep/ui';
-import { AppShell } from '@audio-sep/ui';
+import { ThemeProvider } from '@studioflow/ui';
+import { AppShell } from '@studioflow/ui';
 import { useThemeStore } from './stores/themeStore.js';
 import { useAuthStore } from './stores/authStore.js';
 import AppRouter from './router.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
+import ToastContainer from './components/Toast.jsx';
+import OnboardingBanner from './components/OnboardingBanner.jsx';
 import {
   Scissors,
   FileVideo,
@@ -12,6 +15,7 @@ import {
   RefreshCw,
   Film,
   Home,
+  Settings,
 } from 'lucide-react';
 
 const navItems = [
@@ -21,10 +25,11 @@ const navItems = [
   { label: 'Audio Cutter', path: '/cutter', icon: ScissorsLineDashed },
   { label: 'Format Changer', path: '/converter', icon: RefreshCw },
   { label: 'Video Editor', path: '/editor', icon: Film },
+  { label: 'Settings', path: '/settings', icon: Settings },
 ];
 
 export default function App() {
-  const { theme, toggleTheme } = useThemeStore();
+  const { theme, toggleTheme, setTheme } = useThemeStore();
   const { token, fetchUser } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,7 +48,7 @@ export default function App() {
       return <Navigate to={redirectTo} replace />;
     }
     return (
-      <ThemeProvider initialTheme={theme}>
+      <ThemeProvider mode={theme} onModeChange={setTheme}>
         <AppRouter />
       </ThemeProvider>
     );
@@ -56,7 +61,7 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider initialTheme={theme}>
+    <ThemeProvider mode={theme} onModeChange={setTheme}>
       <AppShell
         navItems={navItems.map((item) => ({
           ...item,
@@ -67,7 +72,11 @@ export default function App() {
         onThemeToggle={toggleTheme}
         theme={theme}
       >
-        <AppRouter />
+        <OnboardingBanner />
+        <ErrorBoundary>
+          <AppRouter />
+        </ErrorBoundary>
+        <ToastContainer />
       </AppShell>
     </ThemeProvider>
   );

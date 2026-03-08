@@ -20,10 +20,10 @@ export const IconButton = forwardRef(
           'inline-flex items-center justify-center rounded-lg transition-colors duration-200',
           sizeStyles[size],
           variant === 'default' &&
-            'bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:bg-[var(--glass-hover-bg)]',
-          variant === 'ghost' && 'hover:bg-[var(--glass-bg)]',
-          active && 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border-[var(--accent-primary)]/30',
-          !active && 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+            'bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-white/10',
+          variant === 'ghost' && 'hover:bg-gray-100 dark:hover:bg-white/5',
+          active && 'bg-cyan-500/15 text-cyan-500 border-cyan-500/30',
+          !active && 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100',
           className
         )}
         {...props}

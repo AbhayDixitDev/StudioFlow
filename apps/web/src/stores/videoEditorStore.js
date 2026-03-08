@@ -13,6 +13,7 @@ import UndoManager, {
   DuplicateClipCommand,
 } from '../features/video-editor/engine/UndoManager.js';
 import SnapEngine from '../features/video-editor/engine/SnapEngine.js';
+import { saveProject as saveProjectLocal, loadProject as loadProjectLocal, saveBlob } from '../features/video-editor/engine/localPersistence.js';
 
 let mediaIdCounter = 1;
 let saveTimer = null;
@@ -27,15 +28,26 @@ const snap = new SnapEngine(engine);
 
 const useVideoEditorStore = create((set) => {
   // Subscribe to engine events
+  // Local save helper (saves to the current local project)
+  function triggerLocalSave() {
+    try {
+      const s = useVideoEditorStore.getState();
+      if (s.localProjectId) {
+        saveProjectLocal(s.localProjectId, engine, s.mediaItems);
+      }
+    } catch {}
+  }
+
   engine.on('tracksChanged', (tracks) => {
     set({ tracks: tracks.map((t) => ({ ...t, clips: [...t.clips] })) });
-    // Trigger auto-save on track changes
     try { useVideoEditorStore.getState().triggerAutoSave?.(); } catch {}
+    triggerLocalSave();
   });
 
   engine.on('clipsChanged', () => {
     set({ tracks: engine.tracks.map((t) => ({ ...t, clips: [...t.clips] })) });
     try { useVideoEditorStore.getState().triggerAutoSave?.(); } catch {}
+    triggerLocalSave();
   });
 
   engine.on('timeupdate', (time) => {
@@ -66,6 +78,16 @@ const useVideoEditorStore = create((set) => {
     set({ canUndo: cu, canRedo: cr });
   });
 
+  engine.on('settingsChanged', (settings) => {
+    set({ projectSettings: { ...settings } });
+    triggerLocalSave();
+  });
+
+  engine.on('markersChanged', (markers) => {
+    set({ markers: [...markers] });
+    triggerLocalSave();
+  });
+
   return {
     // State
     tracks: [],
@@ -79,6 +101,7 @@ const useVideoEditorStore = create((set) => {
     canRedo: false,
     pixelsPerSecond: 50,
     projectSettings: engine.projectSettings,
+    markers: [],
     mediaItems: [],
 
     // Engine accessors
@@ -143,8 +166,10 @@ const useVideoEditorStore = create((set) => {
     zoomIn: () => set((s) => ({ pixelsPerSecond: Math.min(200, s.pixelsPerSecond * 1.5) })),
     zoomOut: () => set((s) => ({ pixelsPerSecond: Math.max(10, s.pixelsPerSecond / 1.5) })),
 
-    // Project
+    // Project (server-side)
     projectId: null,
+    // Local project ID
+    localProjectId: null,
     saveStatus: 'idle', // idle | saving | saved | error
     loadProject: (data) => {
       if (data.projectId) set({ projectId: data.projectId });
@@ -156,15 +181,22 @@ const useVideoEditorStore = create((set) => {
     triggerAutoSave: () => {
       const state = useVideoEditorStore.getState();
       if (!state.projectId || state.playing) return;
+      const token = localStorage.getItem('accessToken');
+      if (!token) return; // Skip save if not logged in
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
         const s = useVideoEditorStore.getState();
         if (saving || !s.projectId) return;
+        const t = localStorage.getItem('accessToken');
+        if (!t) return;
         saving = true;
         set({ saveStatus: 'saving' });
         fetch(`/api/video/projects/${s.projectId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${t}`,
+          },
           body: JSON.stringify({
             tracks: engine.tracks,
             duration: engine.duration,
@@ -181,14 +213,23 @@ const useVideoEditorStore = create((set) => {
     },
 
     // Media bin
-    addMediaItem: (item) =>
-      set((s) => ({
-        mediaItems: [...s.mediaItems, { ...item, id: `media_${mediaIdCounter++}` }],
-      })),
-    removeMediaItem: (id) =>
+    addMediaItem: (item) => {
+      const id = `media_${mediaIdCounter++}`;
+      const persistKey = `media_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const newItem = { ...item, id, persistKey };
+      set((s) => ({ mediaItems: [...s.mediaItems, newItem] }));
+      // Save blob to IndexedDB
+      if (item.file) {
+        saveBlob(persistKey, item.file).catch(() => {});
+      }
+      triggerLocalSave();
+    },
+    removeMediaItem: (id) => {
       set((s) => ({
         mediaItems: s.mediaItems.filter((m) => m.id !== id),
-      })),
+      }));
+      triggerLocalSave();
+    },
 
     // Clipboard
     clipboardClip: null,
@@ -240,6 +281,95 @@ const useVideoEditorStore = create((set) => {
           loop: true,
         })
       );
+    },
+
+    // Aspect ratio (Phase 186)
+    setAspectRatio: (ratio) => engine.setAspectRatio(ratio),
+
+    // Markers (Phase 187)
+    addMarker: (time, name) => engine.addMarker(time, name),
+    removeMarker: (id) => engine.removeMarker(id),
+    seekToNextMarker: () => {
+      const m = engine.getNextMarker(engine.currentTime);
+      if (m) playback.seek(m.time);
+    },
+    seekToPrevMarker: () => {
+      const m = engine.getPrevMarker(engine.currentTime);
+      if (m) playback.seek(m.time);
+    },
+
+    // Filter presets (Phase 184)
+    applyFilterPreset: (clipId, preset) => {
+      const clip = clipManager.getClipById(clipId);
+      if (!clip) return;
+      const effects = preset.effects.map((e) => ({
+        id: e.id,
+        enabled: true,
+        values: { ...e.values },
+        keyframes: [],
+      }));
+      undo.execute(new UpdatePropertyCommand(clipManager, clipId, 'effects', effects));
+      undo.execute(new UpdatePropertyCommand(clipManager, clipId, 'filter', preset.id));
+    },
+
+    // Project templates (Phase 189)
+    loadTemplate: (template) => {
+      engine.projectSettings = { ...engine.projectSettings, ...template.settings };
+      engine.tracks = [];
+      engine.markers = [];
+      if (template.tracks) {
+        for (const t of template.tracks) {
+          engine.addTrack(t.type, t.name);
+        }
+      }
+      engine.emit('settingsChanged', engine.projectSettings);
+      engine.emit('tracksChanged', engine.tracks);
+      set({ projectId: null, projectSettings: { ...engine.projectSettings }, markers: [] });
+    },
+
+    // Open a local project by ID (settings = {aspectRatio, width, height, fps} for new projects)
+    openLocalProject: async (projectId, settings) => {
+      const data = await loadProjectLocal(projectId);
+      if (!data) {
+        // New project — apply settings if provided
+        if (settings) {
+          engine.projectSettings = { ...engine.projectSettings, ...settings };
+          engine.emit('settingsChanged', engine.projectSettings);
+        }
+        set({ localProjectId: projectId, mediaItems: [], projectSettings: { ...engine.projectSettings } });
+        return;
+      }
+      engine.loadProject({
+        tracks: data.tracks,
+        duration: data.duration,
+        projectSettings: data.projectSettings,
+        markers: data.markers,
+      });
+      set({
+        localProjectId: projectId,
+        mediaItems: data.mediaItems,
+        projectSettings: { ...engine.projectSettings },
+        markers: [...engine.markers],
+      });
+    },
+
+    // Close current project (reset editor)
+    closeProject: () => {
+      engine.tracks = [];
+      engine.markers = [];
+      engine.currentTime = 0;
+      engine.duration = 0;
+      engine.projectSettings = { width: 1920, height: 1080, fps: 30, aspectRatio: '16:9' };
+      engine.emit('tracksChanged', engine.tracks);
+      engine.emit('settingsChanged', engine.projectSettings);
+      set({
+        localProjectId: null,
+        projectId: null,
+        mediaItems: [],
+        currentTime: 0,
+        markers: [],
+        projectSettings: { ...engine.projectSettings },
+      });
     },
 
     // Cleanup

@@ -18,12 +18,12 @@ export const Card = forwardRef(
         className={cn(
           'rounded-xl transition-all duration-200',
           variant === 'default' &&
-            'bg-[var(--glass-bg)] border border-[var(--glass-border)] backdrop-blur-xl',
+            'bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/50 backdrop-blur-xl',
           variant === 'glass' &&
-            'bg-[var(--glass-bg)] border border-[var(--glass-border)] backdrop-blur-2xl shadow-[var(--shadow-md)]',
+            'bg-white/80 dark:bg-white/5 border border-gray-200 dark:border-gray-700/50 backdrop-blur-2xl shadow-md dark:shadow-lg',
           variant === 'outlined' &&
-            'bg-transparent border border-[var(--border-default)]',
-          hoverable && 'cursor-pointer hover:border-[var(--border-hover)] hover:shadow-[var(--shadow-lg)]',
+            'bg-transparent border border-gray-200 dark:border-gray-700',
+          hoverable && 'cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg',
           paddingStyles[padding],
           className
         )}

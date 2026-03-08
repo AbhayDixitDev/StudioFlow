@@ -88,16 +88,19 @@ export default class PlaybackController {
   }
 
   /**
-   * Gather audio clips from all tracks and start playback.
+   * Gather audio-only clips and start playback.
+   * Video clip audio is handled by the <video> elements in VideoPreview.
    */
   _startAudio() {
     const clips = [];
-    for (const track of this.engine.tracks) {
-      if (track.type !== 'audio' && track.type !== 'video') continue;
-      if (track.muted) continue;
+    const anySoloed = this.engine.tracks.some(
+      (t) => t.solo && (t.type === 'audio' || t.type === 'video')
+    );
 
-      // Check solo: if any track is soloed, only play soloed tracks
-      const anySoloed = this.engine.tracks.some((t) => t.solo && (t.type === 'audio' || t.type === 'video'));
+    for (const track of this.engine.tracks) {
+      // Only handle audio-only tracks here; video audio is handled by video elements
+      if (track.type !== 'audio') continue;
+      if (track.muted) continue;
       if (anySoloed && !track.solo) continue;
 
       for (const clip of track.clips) {

@@ -6,8 +6,8 @@ export function WaveformDisplay({
   duration,
   currentTime = 0,
   height = 80,
-  color = 'var(--text-muted)',
-  progressColor = 'var(--accent-primary)',
+  color = '#9ca3af',
+  progressColor = '#06b6d4',
   onSeek,
   className,
 }) {

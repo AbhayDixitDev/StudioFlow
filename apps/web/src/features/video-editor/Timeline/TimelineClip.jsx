@@ -136,9 +136,19 @@ export default function TimelineClip({ clip, trackId, pixelsPerSecond, trackHeig
             </span>
           </div>
         ) : (
-          <span className="text-[9px] font-medium text-white truncate drop-shadow-sm">
-            {clip.name}
-          </span>
+          <div className="flex flex-col overflow-hidden">
+            <span className="text-[9px] font-medium text-white truncate drop-shadow-sm">
+              {clip.name}
+            </span>
+            {clip.speed != null && clip.speed !== 1 && (
+              <span className="text-[7px] text-cyan-300/80 font-mono">
+                {clip.speed}x{clip.reverse ? ' R' : ''}
+              </span>
+            )}
+            {clip.reverse && (!clip.speed || clip.speed === 1) && (
+              <span className="text-[7px] text-cyan-300/80 font-mono">REV</span>
+            )}
+          </div>
         )}
       </div>
 

@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import useVideoEditorStore from '../../../stores/videoEditorStore.js';
 import TimeRuler from './TimeRuler.jsx';
 import Playhead from './Playhead.jsx';
@@ -21,9 +21,13 @@ export default function Timeline() {
   const soloTrack = useVideoEditorStore((s) => s.soloTrack);
   const removeTrack = useVideoEditorStore((s) => s.removeTrack);
   const addBackgroundMusic = useVideoEditorStore((s) => s.addBackgroundMusic);
+  const markers = useVideoEditorStore((s) => s.markers);
+  const removeMarker = useVideoEditorStore((s) => s.removeMarker);
 
   const scrollRef = useRef(null);
   const bgMusicRef = useRef(null);
+
+  const setPixelsPerSecond = useVideoEditorStore((s) => s.setPixelsPerSecond);
 
   const handleBgMusic = useCallback((e) => {
     const file = e.target.files?.[0];
@@ -32,13 +36,31 @@ export default function Timeline() {
     const url = URL.createObjectURL(file);
     addBackgroundMusic({ name: file.name, url, file });
   }, [addBackgroundMusic]);
+
+  // Ctrl+Wheel zoom
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    function handleWheel(e) {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -1 : 1;
+        const factor = 1 + delta * 0.15;
+        const newPps = Math.max(10, Math.min(200, pixelsPerSecond * factor));
+        setPixelsPerSecond(newPps);
+      }
+    }
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [pixelsPerSecond, setPixelsPerSecond]);
+
   const totalWidth = Math.max((duration + 10) * pixelsPerSecond, 800);
   const totalHeight = tracks.length * TRACK_HEIGHT + 40;
 
   return (
-    <div className="flex flex-col border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <button
           onClick={() => addTrack('video')}
           className="rounded px-2 py-1 text-[10px] font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400"
@@ -88,9 +110,9 @@ export default function Timeline() {
       </div>
 
       {/* Timeline body */}
-      <div className="flex" style={{ height: Math.max(totalHeight, 120) }}>
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Track headers */}
-        <div className="flex-shrink-0 border-r border-gray-200 dark:border-gray-700" style={{ width: HEADER_WIDTH }}>
+        <div className="flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto" style={{ width: HEADER_WIDTH }}>
           {/* Ruler spacer */}
           <div className="h-6 border-b border-gray-200 dark:border-gray-700" />
 
@@ -164,6 +186,27 @@ export default function Timeline() {
                 height={tracks.length * TRACK_HEIGHT}
                 onSeek={seek}
               />
+
+              {/* Markers */}
+              {markers.map((m) => (
+                <div
+                  key={m.id}
+                  className="absolute top-0 z-20 group"
+                  style={{ left: m.time * pixelsPerSecond, transform: 'translateX(-50%)' }}
+                >
+                  <div
+                    className="w-0 border-l-2 border-dashed border-amber-400"
+                    style={{ height: tracks.length * TRACK_HEIGHT }}
+                  />
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-amber-500 text-white rounded px-1 py-0.5 text-[7px] font-bold whitespace-nowrap shadow cursor-pointer"
+                    title={`${m.name} @ ${m.time.toFixed(1)}s - Right-click to delete`}
+                    onContextMenu={(e) => { e.preventDefault(); removeMarker(m.id); }}
+                    onClick={() => seek(m.time)}
+                  >
+                    {m.name}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

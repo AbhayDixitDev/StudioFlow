@@ -108,16 +108,16 @@ export function FileDropzone({
         className={cn(
           'relative flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed cursor-pointer transition-colors duration-200',
           isDragging
-            ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/5'
-            : 'border-[var(--border-default)] hover:border-[var(--border-hover)] bg-[var(--glass-bg)]'
+            ? 'border-cyan-500 bg-cyan-500/5'
+            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-white/5'
         )}
       >
         <motion.div animate={isDragging ? { scale: 1.1, y: -4 } : { scale: 1, y: 0 }}>
-          <Upload className="h-10 w-10 text-[var(--text-muted)]" />
+          <Upload className="h-10 w-10 text-gray-400 dark:text-gray-500" />
         </motion.div>
         <div className="text-center">
-          <p className="text-sm font-medium text-[var(--text-primary)]">{label}</p>
-          {description && <p className="text-xs text-[var(--text-muted)] mt-1">{description}</p>}
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</p>
+          {description && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{description}</p>}
         </div>
         <input
           ref={inputRef}
@@ -129,7 +129,7 @@ export function FileDropzone({
         />
       </motion.div>
 
-      {error && <p className="mt-2 text-xs text-[var(--accent-error)]">{error}</p>}
+      {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
 
       <AnimatePresence>
         {selectedFiles.length > 0 && (
@@ -142,21 +142,21 @@ export function FileDropzone({
             {selectedFiles.map((file, i) => (
               <div
                 key={`${file.name}-${i}`}
-                className="flex items-center gap-3 p-3 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)]"
+                className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/50"
               >
-                <div className="text-[var(--accent-primary)]">{getFileIcon(file.name)}</div>
+                <div className="text-cyan-500">{getFileIcon(file.name)}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                     {file.name}
                   </p>
-                  <p className="text-xs text-[var(--text-muted)]">{formatSize(file.size)}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">{formatSize(file.size)}</p>
                 </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     removeFile(i);
                   }}
-                  className="p-1 rounded hover:bg-[var(--glass-hover-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-100"
                 >
                   <X className="h-4 w-4" />
                 </button>

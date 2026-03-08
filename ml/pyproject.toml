@@ -1,7 +1,7 @@
 [project]
-name = "audio-separator-ml"
+name = "studioflow-ml"
 version = "0.1.0"
-description = "Audio separation ML service using Demucs"
+description = "StudioFlow ML service for audio separation using Demucs"
 requires-python = ">=3.10"
 
 [project.scripts]

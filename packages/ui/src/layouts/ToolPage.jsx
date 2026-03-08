@@ -16,20 +16,20 @@ export function ToolPage({
       transition={{ duration: 0.3 }}
       className={cn('flex flex-col h-full', className)}
     >
-      <header className="shrink-0 px-6 py-5 border-b border-[var(--glass-border)]">
+      <header className="shrink-0 px-6 py-5 border-b border-gray-200 dark:border-gray-700/50">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {icon && (
-              <div className="shrink-0 p-2 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]">
+              <div className="shrink-0 p-2 rounded-lg bg-cyan-500/10 text-cyan-500">
                 {icon}
               </div>
             )}
             <div className="min-w-0">
-              <h1 className="text-lg font-semibold text-[var(--text-primary)] truncate">
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {title}
               </h1>
               {description && (
-                <p className="text-sm text-[var(--text-muted)] truncate">{description}</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 truncate">{description}</p>
               )}
             </div>
           </div>

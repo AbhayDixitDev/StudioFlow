@@ -1,9 +1,12 @@
-import { Slider, Select } from '@audio-sep/ui';
+import { Slider, Select } from '@studioflow/ui';
 
 const BITRATE_OPTIONS = ['64k', '128k', '192k', '256k', '320k'];
 const SAMPLE_RATES = [22050, 44100, 48000, 96000];
 
 const LOSSY_FORMATS = ['mp3', 'ogg', 'aac', 'm4a'];
+
+// Max sample rate per format (formats not listed support all)
+const MAX_SAMPLE_RATE = { mp3: 48000, ogg: 48000 };
 
 export default function QualitySettings({
   format,
@@ -55,20 +58,27 @@ export default function QualitySettings({
           Sample Rate
         </label>
         <div className="flex gap-2 flex-wrap">
-          {SAMPLE_RATES.map((sr) => (
-            <button
-              key={sr}
-              onClick={() => onSampleRateChange(sr)}
-              className={`px-3 py-1 rounded text-sm transition-all
-                ${
-                  sampleRate === sr
-                    ? 'bg-violet-500 text-white'
-                    : 'bg-white/5 hover:bg-white/10'
-                }`}
-            >
-              {(sr / 1000).toFixed(1)}kHz
-            </button>
-          ))}
+          {SAMPLE_RATES.map((sr) => {
+            const maxRate = MAX_SAMPLE_RATE[format];
+            const disabled = maxRate && sr > maxRate;
+            return (
+              <button
+                key={sr}
+                onClick={() => !disabled && onSampleRateChange(sr)}
+                disabled={disabled}
+                className={`px-3 py-1 rounded text-sm transition-all
+                  ${disabled
+                    ? 'bg-white/5 opacity-30 cursor-not-allowed line-through'
+                    : sampleRate === sr
+                      ? 'bg-violet-500 text-white'
+                      : 'bg-white/5 hover:bg-white/10'
+                  }`}
+                title={disabled ? `${format.toUpperCase()} supports max 48kHz` : ''}
+              >
+                {(sr / 1000).toFixed(1)}kHz
+              </button>
+            );
+          })}
         </div>
       </div>
 

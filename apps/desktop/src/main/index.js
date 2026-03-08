@@ -22,7 +22,7 @@ function createWindow() {
     y: windowBounds.y,
     minWidth: 800,
     minHeight: 600,
-    title: 'Audio Separator',
+    title: 'StudioFlow',
     icon: path.join(__dirname, '..', '..', 'resources', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'index.js'),

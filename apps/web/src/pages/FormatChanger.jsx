@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { ToolPage, FileDropzone, Button, ProgressBar } from '@audio-sep/ui';
+import { ToolPage, FileDropzone, Button, ProgressBar } from '@studioflow/ui';
 import { Download, CheckCircle } from 'lucide-react';
 import FormatPicker from '../features/converter/FormatPicker.jsx';
 import QualitySettings from '../features/converter/QualitySettings.jsx';
 import api from '../services/api.js';
-import { formatFileSize } from '@audio-sep/shared';
+import { formatFileSize } from '@studioflow/shared';
 
 export default function FormatChanger() {
   const [file, setFile] = useState(null);
@@ -92,11 +92,11 @@ export default function FormatChanger() {
 
         {/* File info */}
         {uploadedFile && (
-          <div className="p-4 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)]">
+          <div className="p-4 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/50">
             <div className="flex justify-between items-center">
               <div>
-                <p className="font-medium text-[var(--text-primary)]">{file?.name || uploadedFile.originalName}</p>
-                <p className="text-sm text-[var(--text-muted)]">
+                <p className="font-medium text-gray-900 dark:text-gray-100">{file?.name || uploadedFile.originalName}</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">
                   {uploadedFile.format.toUpperCase()} &middot;{' '}
                   {formatFileSize(uploadedFile.fileSize)}
                   {uploadedFile.duration > 0 &&
@@ -114,12 +114,12 @@ export default function FormatChanger() {
         {uploadedFile && !completedJobId && (
           <>
             <div>
-              <h3 className="text-sm font-medium mb-3 text-[var(--text-primary)]">Output Format</h3>
+              <h3 className="text-sm font-medium mb-3 text-gray-900 dark:text-gray-100">Output Format</h3>
               <FormatPicker selected={targetFormat} onSelect={setTargetFormat} />
             </div>
 
             <div>
-              <h3 className="text-sm font-medium mb-3 text-[var(--text-primary)]">Quality</h3>
+              <h3 className="text-sm font-medium mb-3 text-gray-900 dark:text-gray-100">Quality</h3>
               <QualitySettings
                 format={targetFormat}
                 bitrate={bitrate}

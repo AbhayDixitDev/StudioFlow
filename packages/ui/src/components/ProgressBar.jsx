@@ -1,10 +1,10 @@
 import { cn } from '../lib/cn';
 
 const variantColors = {
-  default: 'bg-[var(--accent-primary)]',
-  accent: 'bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)]',
-  success: 'bg-[var(--accent-success)]',
-  danger: 'bg-[var(--accent-error)]',
+  default: 'bg-cyan-500',
+  accent: 'bg-gradient-to-r from-cyan-500 to-violet-500',
+  success: 'bg-green-500',
+  danger: 'bg-red-500',
 };
 
 export function ProgressBar({
@@ -20,12 +20,12 @@ export function ProgressBar({
     <div className={cn('w-full', className)}>
       {showLabel && !isIndeterminate && (
         <div className="flex justify-end mb-1">
-          <span className="text-xs font-medium text-[var(--text-secondary)]">{Math.round(value)}%</span>
+          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{Math.round(value)}%</span>
         </div>
       )}
       <div
         className={cn(
-          'w-full rounded-full overflow-hidden bg-[var(--glass-border)]',
+          'w-full rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700',
           size === 'sm' ? 'h-1' : 'h-2'
         )}
       >

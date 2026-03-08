@@ -129,6 +129,25 @@ export default function PreviewControls() {
           </option>
         ))}
       </select>
+
+      {/* Fullscreen toggle */}
+      <button
+        onClick={() => {
+          const el = document.querySelector('[data-preview-container]');
+          if (!el) return;
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+          } else {
+            el.requestFullscreen().catch(() => {});
+          }
+        }}
+        className={btnClass}
+        title="Toggle fullscreen"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+        </svg>
+      </button>
     </div>
   );
 }

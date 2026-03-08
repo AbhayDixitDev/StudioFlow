@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ToolPage, FileDropzone } from '@audio-sep/ui';
+import { ToolPage, FileDropzone } from '@studioflow/ui';
 import {
   Download,
   CheckCircle,
@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import FormatPicker from '../features/converter/FormatPicker.jsx';
 import api from '../services/api.js';
-import { formatFileSize, isSupportedVideoUrl } from '@audio-sep/shared';
+import { formatFileSize, isSupportedVideoUrl } from '@studioflow/shared';
 
 const TABS = ['Upload File', 'Paste URL'];
 
@@ -213,7 +213,7 @@ export default function VideoToAudio() {
                   ${
                     activeTab === i
                       ? 'bg-violet-500 text-white'
-                      : 'bg-[var(--glass-bg)] hover:bg-[var(--glass-hover-bg)] text-[var(--text-secondary)]'
+                      : 'bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400'
                   }`}
               >
                 {i === 0 ? <Upload size={16} /> : <LinkIcon size={16} />}
@@ -235,14 +235,14 @@ export default function VideoToAudio() {
             )}
 
             {uploadedFile && (
-              <div className="p-4 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)]">
+              <div className="p-4 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/50">
                 <div className="flex items-center gap-3">
                   <Music size={20} className="text-violet-500" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[var(--text-primary)] truncate">
+                    <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
                       {uploadedFile.originalName}
                     </p>
-                    <p className="text-sm text-[var(--text-muted)]">
+                    <p className="text-sm text-gray-400 dark:text-gray-500">
                       {uploadedFile.format?.toUpperCase()} &middot;{' '}
                       {formatFileSize(uploadedFile.fileSize)}
                     </p>
@@ -254,7 +254,7 @@ export default function VideoToAudio() {
             {uploadedFile && (
               <>
                 <div>
-                  <h3 className="text-sm font-medium mb-3 text-[var(--text-primary)]">
+                  <h3 className="text-sm font-medium mb-3 text-gray-900 dark:text-gray-100">
                     Output Format
                   </h3>
                   <FormatPicker
@@ -278,7 +278,7 @@ export default function VideoToAudio() {
         {activeTab === 1 && !result && !isProcessing && (
           <>
             <div>
-              <label className="block text-sm font-medium mb-1.5 text-[var(--text-primary)]">
+              <label className="block text-sm font-medium mb-1.5 text-gray-900 dark:text-gray-100">
                 Video URL
               </label>
               <input
@@ -297,7 +297,7 @@ export default function VideoToAudio() {
             </div>
 
             <div>
-              <h3 className="text-sm font-medium mb-3 text-[var(--text-primary)]">
+              <h3 className="text-sm font-medium mb-3 text-gray-900 dark:text-gray-100">
                 Output Format
               </h3>
               <FormatPicker
@@ -349,18 +349,18 @@ export default function VideoToAudio() {
               </svg>
             </div>
 
-            <p className="text-sm font-medium text-[var(--text-muted)]">
+            <p className="text-sm font-medium text-gray-400 dark:text-gray-500">
               {statusText}
             </p>
 
             {/* Time info */}
-            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+            <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
               <Clock size={13} />
               <span>Elapsed: {formatDuration(elapsed)}</span>
             </div>
 
             {activeTab === 1 && (
-              <p className="text-[11px] text-[var(--text-muted)] opacity-60 truncate max-w-sm">
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 opacity-60 truncate max-w-sm">
                 {url}
               </p>
             )}
@@ -390,19 +390,19 @@ export default function VideoToAudio() {
             </div>
 
             {/* File info */}
-            <div className="rounded-lg border border-gray-200 bg-[var(--glass-bg)] px-4 py-3 dark:border-gray-700">
+            <div className="rounded-lg border border-gray-200 bg-white dark:bg-white/5 px-4 py-3 dark:border-gray-700">
               <div className="flex items-center gap-3">
                 <Music size={20} className="text-violet-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p
-                    className="text-sm font-medium text-[var(--text-primary)] truncate"
+                    className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
                     title={
                       result.audioFile?.originalName || result.originalName
                     }
                   >
                     {result.audioFile?.originalName || result.originalName}
                   </p>
-                  <p className="text-xs text-[var(--text-muted)]">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
                     {outputFormat.toUpperCase()}
                     {(result.audioFile?.fileSize || result.fileSize) &&
                       ` - ${formatFileSize(result.audioFile?.fileSize || result.fileSize)}`}
@@ -426,7 +426,7 @@ export default function VideoToAudio() {
 
             <button
               onClick={reset}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg)] dark:border-gray-600"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-gray-100 transition-colors hover:bg-white dark:hover:bg-white/5 dark:border-gray-600"
             >
               Extract Another
             </button>

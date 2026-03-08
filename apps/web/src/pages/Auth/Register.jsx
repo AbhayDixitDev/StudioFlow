@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore.js';
-import { Button, Input } from '@audio-sep/ui';
+import { Button, Input } from '@studioflow/ui';
 
 export default function Register() {
   const [displayName, setDisplayName] = useState('');
@@ -38,9 +38,9 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[var(--bg-primary)]">
-      <div className="w-full max-w-sm p-6 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)]">
-        <h1 className="text-2xl font-bold text-center mb-6 text-[var(--text-primary)]">Create Account</h1>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-sm p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/50">
+        <h1 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-gray-100">Create Account</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
@@ -80,7 +80,7 @@ export default function Register() {
           </Button>
         </form>
 
-        <p className="text-center mt-4 text-sm text-[var(--text-secondary)]">
+        <p className="text-center mt-4 text-sm text-gray-600 dark:text-gray-400">
           Already have an account?{' '}
           <Link to={`/login${location.search}`} className="text-violet-400 hover:underline">
             Login

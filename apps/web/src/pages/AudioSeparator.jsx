@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ToolPage, FileDropzone } from '@audio-sep/ui';
+import { ToolPage, FileDropzone } from '@studioflow/ui';
 import { Music, AlertCircle, Clock } from 'lucide-react';
 import StemSelector from '../features/separator/StemSelector.jsx';
 import StemPlayer from '../features/separator/StemPlayer.jsx';
 import DownloadPanel from '../features/separator/DownloadPanel.jsx';
 import api from '../services/api.js';
-import { formatFileSize } from '@audio-sep/shared';
+import { formatFileSize } from '@studioflow/shared';
 
 const STEPS = {
   INPUT: 'input',
@@ -239,20 +239,20 @@ export default function AudioSeparator() {
           />
 
           {isUploading && (
-            <div className="text-center text-sm text-[var(--text-muted)]">
+            <div className="text-center text-sm text-gray-400 dark:text-gray-500">
               Uploading...
             </div>
           )}
 
           {uploadedFile && (
-            <div className="rounded-lg border border-gray-200 bg-[var(--glass-bg)] px-4 py-3 dark:border-gray-700">
+            <div className="rounded-lg border border-gray-200 bg-white dark:bg-white/5 px-4 py-3 dark:border-gray-700">
               <div className="flex items-center gap-3">
                 <Music size={20} className="text-violet-500" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[var(--text-primary)] truncate" title={file?.name || uploadedFile.originalName}>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate" title={file?.name || uploadedFile.originalName}>
                     {file?.name || uploadedFile.originalName}
                   </p>
-                  <p className="text-xs text-[var(--text-muted)]">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
                     {formatFileSize(uploadedFile.fileSize)}
                     {uploadedFile.duration > 0 &&
                       ` - ${Math.floor(uploadedFile.duration / 60)}:${String(Math.floor(uploadedFile.duration % 60)).padStart(2, '0')}`}
@@ -266,7 +266,7 @@ export default function AudioSeparator() {
 
           {/* Estimated time before starting */}
           {uploadedFile && estimatedTime && (
-            <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-gray-500">
               <Clock size={14} />
               <span>Estimated processing time: {formatEstimate(estimatedTime)}</span>
             </div>
@@ -305,17 +305,17 @@ export default function AudioSeparator() {
                 strokeDashoffset={`${2 * Math.PI * 52 * (1 - progress / 100)}`}
               />
             </svg>
-            <span className="absolute text-2xl font-bold text-[var(--text-primary)]">
+            <span className="absolute text-2xl font-bold text-gray-900 dark:text-gray-100">
               {progress}%
             </span>
           </div>
 
-          <p className="text-sm font-medium text-[var(--text-muted)]">
+          <p className="text-sm font-medium text-gray-400 dark:text-gray-500">
             {statusText}
           </p>
 
           {/* Time info */}
-          <div className="flex items-center gap-6 text-xs text-[var(--text-muted)]">
+          <div className="flex items-center gap-6 text-xs text-gray-400 dark:text-gray-500">
             <div className="flex items-center gap-1.5">
               <Clock size={13} />
               <span>Elapsed: {formatDuration(elapsed)}</span>
@@ -329,7 +329,7 @@ export default function AudioSeparator() {
 
           {/* File info reminder */}
           {uploadedFile && (
-            <p className="text-[11px] text-[var(--text-muted)] opacity-60 truncate max-w-sm" title={file?.name || uploadedFile.originalName}>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 opacity-60 truncate max-w-sm" title={file?.name || uploadedFile.originalName}>
               {file?.name || uploadedFile.originalName}
             </p>
           )}
@@ -361,7 +361,7 @@ export default function AudioSeparator() {
 
           <button
             onClick={handleReset}
-            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg)] dark:border-gray-600"
+            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-gray-100 transition-colors hover:bg-white dark:hover:bg-white/5 dark:border-gray-600"
           >
             Separate Another Track
           </button>

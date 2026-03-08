@@ -23,6 +23,12 @@ const ANIMATIONS = [
   { label: 'Slide In', value: 'slideIn' },
   { label: 'Typewriter', value: 'typewriter' },
   { label: 'Bounce', value: 'bounce' },
+  { label: 'Scale In', value: 'scaleIn' },
+  { label: 'Scale Out', value: 'scaleOut' },
+  { label: 'Blur In', value: 'blurIn' },
+  { label: 'Rotate In', value: 'rotateIn' },
+  { label: 'Drop In', value: 'dropIn' },
+  { label: 'Glitch', value: 'glitch' },
 ];
 
 export default function TextEditor({ clip }) {

@@ -5,12 +5,12 @@ import { cn } from '../lib/cn';
 
 const variantStyles = {
   primary:
-    'bg-[var(--accent-primary)] text-white hover:brightness-110 shadow-[var(--shadow-glow)]',
+    'bg-cyan-500 text-white hover:bg-cyan-600 shadow-md shadow-cyan-500/20',
   secondary:
-    'bg-[var(--glass-bg)] text-[var(--text-primary)] border border-[var(--glass-border)] hover:bg-[var(--glass-hover-bg)] backdrop-blur-xl',
+    'bg-white dark:bg-white/5 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-white/10 backdrop-blur-xl',
   ghost:
-    'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg)] hover:text-[var(--text-primary)]',
-  danger: 'bg-[var(--accent-error)] text-white hover:brightness-110',
+    'bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-100',
+  danger: 'bg-red-500 text-white hover:bg-red-600',
 };
 
 const sizeStyles = {

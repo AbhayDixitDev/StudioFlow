@@ -39,6 +39,7 @@ export default function TimelineTrack({ track, height, pixelsPerSecond, totalWid
           duration: item.duration || 5,
           sourceDuration: item.duration || 5,
           sourcePath: item.url,
+          _persistKey: item.persistKey || null,
         });
       } catch {
         // ignore invalid data

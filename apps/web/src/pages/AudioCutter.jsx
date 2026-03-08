@@ -1,12 +1,12 @@
 import { useState, useRef } from 'react';
-import { ToolPage, FileDropzone, Button, ProgressBar } from '@audio-sep/ui';
+import { ToolPage, FileDropzone, Button, ProgressBar } from '@studioflow/ui';
 import { Download, Play, Pause, Repeat, CheckCircle } from 'lucide-react';
 import WaveformEditor from '../features/cutter/WaveformEditor.jsx';
 import RegionSelector from '../features/cutter/RegionSelector.jsx';
 import FadeControls from '../features/cutter/FadeControls.jsx';
 import FormatPicker from '../features/converter/FormatPicker.jsx';
 import api from '../services/api.js';
-import { formatFileSize, formatTimecode } from '@audio-sep/shared';
+import { formatFileSize, formatTimecode } from '@studioflow/shared';
 
 export default function AudioCutter() {
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -103,10 +103,10 @@ export default function AudioCutter() {
 
         {/* File info */}
         {uploadedFile && (
-          <div className="p-3 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)] flex justify-between items-center">
+          <div className="p-3 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/50 flex justify-between items-center">
             <div>
-              <p className="font-medium text-[var(--text-primary)]">{uploadedFile.originalName}</p>
-              <p className="text-sm text-[var(--text-muted)]">
+              <p className="font-medium text-gray-900 dark:text-gray-100">{uploadedFile.originalName}</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">
                 {formatFileSize(uploadedFile.fileSize)}
                 {duration > 0 && ` \u00b7 ${formatTimecode(duration)}`}
               </p>
@@ -130,7 +130,7 @@ export default function AudioCutter() {
               onTimeUpdate={setCurrentTime}
             />
 
-            <div className="text-center text-sm opacity-50 font-mono">
+            <div className="text-center text-sm text-gray-500 dark:text-gray-400 font-mono">
               {formatTimecode(currentTime)}
             </div>
 

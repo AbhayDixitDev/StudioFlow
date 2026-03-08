@@ -1,5 +1,5 @@
 {
-  "name": "@audio-sep/web",
+  "name": "@studioflow/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@audio-sep/shared": "*",
-    "@audio-sep/ui": "*",
+    "@studioflow/shared": "*",
+    "@studioflow/ui": "*",
     "axios": "^1.7.9",
     "framer-motion": "^12.0.0",
     "lucide-react": "^0.460.0",

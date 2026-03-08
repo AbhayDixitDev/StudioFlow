@@ -41,6 +41,14 @@ export function probeFile(filePath) {
  * @param {function} onProgress - Callback with progress percentage (0-100)
  * @returns {Promise<void>}
  */
+// Max sample rates per format (formats not listed support any rate)
+const MAX_SAMPLE_RATES = {
+  mp3: 48000,
+  ogg: 48000,
+  aac: 96000,
+  m4a: 96000,
+};
+
 export function convertAudio(inputPath, outputPath, options = {}, onProgress) {
   return new Promise((resolve, reject) => {
     // If no outputPath, generate a temp file
@@ -49,13 +57,19 @@ export function convertAudio(inputPath, outputPath, options = {}, onProgress) {
       `audiosep_${crypto.randomBytes(6).toString('hex')}.${options.format || 'mp3'}`
     );
 
+    // Detect output format from extension
+    const ext = path.extname(actualOutput).replace('.', '').toLowerCase();
+
     let cmd = ffmpeg(inputPath);
 
     if (options.bitrate) {
       cmd = cmd.audioBitrate(options.bitrate);
     }
     if (options.sampleRate) {
-      cmd = cmd.audioFrequency(options.sampleRate);
+      // Cap sample rate to what the target format supports
+      const maxRate = MAX_SAMPLE_RATES[ext];
+      const rate = maxRate ? Math.min(options.sampleRate, maxRate) : options.sampleRate;
+      cmd = cmd.audioFrequency(rate);
     }
     if (options.channels) {
       cmd = cmd.audioChannels(options.channels);

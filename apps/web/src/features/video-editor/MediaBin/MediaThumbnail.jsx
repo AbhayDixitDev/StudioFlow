@@ -78,6 +78,7 @@ export default function MediaThumbnail({ item, onRemove }) {
       type: item.type,
       url: item.url,
       duration: duration || 5,
+      persistKey: item.persistKey || null,
     }));
     e.dataTransfer.effectAllowed = 'copy';
   }

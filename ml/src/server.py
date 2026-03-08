@@ -17,7 +17,7 @@ from .config import SUPPORTED_MODELS, DEFAULT_MODEL
 from .models.demucs_wrapper import DemucsWrapper
 from .utils.gpu_check import get_device, get_gpu_info, get_ram_gb, has_cuda
 
-app = FastAPI(title="Audio Separator ML", version="0.1.0")
+app = FastAPI(title="StudioFlow ML API", version="0.1.0")
 
 UPLOAD_DIR = Path(os.environ.get("ML_UPLOAD_DIR", "/tmp/audio-sep-ml"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

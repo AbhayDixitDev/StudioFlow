@@ -33,7 +33,7 @@ export function Tooltip({ content, placement = 'top', delay = 300, children }) {
             transition={{ duration: 0.1 }}
             className={cn(
               'absolute z-50 px-2.5 py-1.5 rounded-md text-xs font-medium whitespace-nowrap pointer-events-none',
-              'bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--glass-border)] shadow-[var(--shadow-md)]',
+              'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700/50 shadow-md',
               placementStyles[placement]
             )}
           >

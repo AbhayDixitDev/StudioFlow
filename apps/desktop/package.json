@@ -1,5 +1,5 @@
 {
-  "name": "@audio-sep/desktop",
+  "name": "@studioflow/desktop",
   "version": "0.1.0",
   "private": true,
   "main": "src/main/index.js",

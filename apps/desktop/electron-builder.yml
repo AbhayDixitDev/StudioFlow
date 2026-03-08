@@ -1,5 +1,5 @@
-appId: com.audioseparator.app
-productName: Audio Separator
+appId: com.studioflow.app
+productName: StudioFlow
 copyright: Copyright 2024
 
 directories:
@@ -30,7 +30,7 @@ nsis:
   perMachine: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Audio Separator
+  shortcutName: StudioFlow
   installerIcon: resources/icon.ico
   uninstallerIcon: resources/icon.ico
 

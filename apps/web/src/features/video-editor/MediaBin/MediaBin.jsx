@@ -4,6 +4,7 @@ import MediaThumbnail from './MediaThumbnail.jsx';
 import textTemplates from '../engine/textTemplates.js';
 import TransitionPicker from '../Transitions/TransitionPicker.jsx';
 import StemImporter from './StemImporter.jsx';
+import filterPresets from '../engine/filterPresets.js';
 
 const ACCEPT = 'video/*,audio/*,image/*';
 
@@ -12,6 +13,8 @@ export default function MediaBin() {
   const addMediaItem = useVideoEditorStore((s) => s.addMediaItem);
   const removeMediaItem = useVideoEditorStore((s) => s.removeMediaItem);
   const addTextFromTemplate = useVideoEditorStore((s) => s.addTextFromTemplate);
+  const applyFilterPreset = useVideoEditorStore((s) => s.applyFilterPreset);
+  const selectedClipIds = useVideoEditorStore((s) => s.selectedClipIds);
   const fileRef = useRef(null);
   const [tab, setTab] = useState('media');
 
@@ -83,6 +86,16 @@ export default function MediaBin() {
           }`}
         >
           FX
+        </button>
+        <button
+          onClick={() => setTab('filters')}
+          className={`flex-1 px-3 py-1.5 text-[10px] font-semibold ${
+            tab === 'filters'
+              ? 'text-violet-600 dark:text-violet-400 border-b-2 border-violet-500'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          Filters
         </button>
         <button
           onClick={() => setTab('stems')}
@@ -173,6 +186,40 @@ export default function MediaBin() {
         </div>
       )}
       {tab === 'transitions' && <TransitionPicker />}
+      {tab === 'filters' && (
+        <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+          {selectedClipIds.length !== 1 ? (
+            <div className="flex items-center justify-center h-full text-[10px] text-gray-400 dark:text-gray-500">
+              Select a clip to apply filters
+            </div>
+          ) : (
+            filterPresets.map((preset) => (
+              <button
+                key={preset.id}
+                onClick={() => applyFilterPreset(selectedClipIds[0], preset)}
+                className="w-full text-left rounded border border-gray-200 dark:border-gray-700 p-2 hover:border-violet-400 dark:hover:border-violet-500 transition-colors group"
+              >
+                <div className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 group-hover:text-violet-600 dark:group-hover:text-violet-400">
+                  {preset.name}
+                </div>
+                <div className="text-[8px] text-gray-400 dark:text-gray-500">
+                  {preset.description}
+                </div>
+                <div className="flex gap-1 mt-1 flex-wrap">
+                  {preset.effects.map((e) => (
+                    <span
+                      key={e.id}
+                      className="rounded bg-gray-100 dark:bg-gray-700 px-1 py-0.5 text-[7px] text-gray-500 dark:text-gray-400"
+                    >
+                      {e.id}
+                    </span>
+                  ))}
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      )}
       {tab === 'stems' && <StemImporter />}
     </div>
   );

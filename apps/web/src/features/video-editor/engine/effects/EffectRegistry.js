@@ -3,6 +3,13 @@ import ContrastEffect from './ContrastEffect.js';
 import SaturationEffect from './SaturationEffect.js';
 import BlurEffect from './BlurEffect.js';
 import ChromaKeyEffect from './ChromaKeyEffect.js';
+import HueRotateEffect from './HueRotateEffect.js';
+import TemperatureEffect from './TemperatureEffect.js';
+import TintEffect from './TintEffect.js';
+import VignetteEffect from './VignetteEffect.js';
+import SharpenEffect from './SharpenEffect.js';
+import MosaicEffect from './MosaicEffect.js';
+import NoiseEffect from './NoiseEffect.js';
 
 const effects = new Map();
 
@@ -34,6 +41,13 @@ register(new ContrastEffect());
 register(new SaturationEffect());
 register(new BlurEffect());
 register(new ChromaKeyEffect());
+register(new HueRotateEffect());
+register(new TemperatureEffect());
+register(new TintEffect());
+register(new VignetteEffect());
+register(new SharpenEffect());
+register(new MosaicEffect());
+register(new NoiseEffect());
 
 const effectRegistry = { register, get, getAll, getByCategory, getCategories };
 export default effectRegistry;

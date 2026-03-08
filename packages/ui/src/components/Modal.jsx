@@ -33,7 +33,7 @@ export function Modal({ isOpen, onClose, title, size = 'md', children, footer })
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
@@ -42,16 +42,16 @@ export function Modal({ isOpen, onClose, title, size = 'md', children, footer })
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className={cn(
-              'relative w-full mx-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-[var(--shadow-lg)]',
+              'relative w-full mx-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700/50 shadow-xl',
               sizeStyles[size]
             )}
           >
             {title && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
-                <h2 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h2>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
                 <button
                   onClick={onClose}
-                  className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)] transition-colors"
+                  className="p-1 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -59,7 +59,7 @@ export function Modal({ isOpen, onClose, title, size = 'md', children, footer })
             )}
             <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">{children}</div>
             {footer && (
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-default)]">
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
                 {footer}
               </div>
             )}

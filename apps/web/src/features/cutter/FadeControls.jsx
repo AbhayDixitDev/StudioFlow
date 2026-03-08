@@ -1,4 +1,4 @@
-import { Slider } from '@audio-sep/ui';
+import { Slider } from '@studioflow/ui';
 
 export default function FadeControls({
   fadeIn,

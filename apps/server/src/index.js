@@ -17,6 +17,7 @@ import videoRoutes from './routes/video.routes.js';
 import { startSeparationWorker, setSocketIO } from './workers/separationWorker.js';
 import { startExportWorker, setExportSocketIO } from './workers/exportWorker.js';
 import { checkRedisAvailable } from './config/queue.js';
+import { startCleanupCron } from './cron/cleanup.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -89,6 +90,9 @@ async function start() {
   await checkRedisAvailable();
   await startSeparationWorker();
   await startExportWorker();
+
+  // Start file cleanup cron (Phase 216)
+  startCleanupCron();
 
   server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

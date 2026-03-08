@@ -16,6 +16,7 @@ export default class TimelineEngine {
       fps: 30,
       aspectRatio: '16:9',
     };
+    this.markers = [];
     this._listeners = {};
   }
 
@@ -51,6 +52,7 @@ export default class TimelineEngine {
       speed: this.speed,
       duration: this.duration,
       projectSettings: { ...this.projectSettings },
+      markers: [...this.markers],
     };
   }
 
@@ -66,9 +68,48 @@ export default class TimelineEngine {
     if (data.projectSettings) {
       this.projectSettings = { ...this.projectSettings, ...data.projectSettings };
     }
+    if (data.markers) this.markers = data.markers;
     this._recalcDuration();
     this.emit('projectLoaded', this.getState());
     this.emit('tracksChanged', this.tracks);
+  }
+
+  // ─── Aspect ratio (Phase 186) ───
+
+  setAspectRatio(ratio) {
+    const sizes = {
+      '16:9': { width: 1920, height: 1080 },
+      '9:16': { width: 1080, height: 1920 },
+      '1:1': { width: 1080, height: 1080 },
+      '4:3': { width: 1440, height: 1080 },
+    };
+    const s = sizes[ratio] || sizes['16:9'];
+    this.projectSettings = { ...this.projectSettings, ...s, aspectRatio: ratio };
+    this.emit('settingsChanged', this.projectSettings);
+  }
+
+  // ─── Markers (Phase 187) ───
+
+  addMarker(time, name = '') {
+    const marker = { id: uid(), time, name: name || `Marker ${this.markers.length + 1}` };
+    this.markers.push(marker);
+    this.markers.sort((a, b) => a.time - b.time);
+    this.emit('markersChanged', this.markers);
+    return marker;
+  }
+
+  removeMarker(markerId) {
+    this.markers = this.markers.filter((m) => m.id !== markerId);
+    this.emit('markersChanged', this.markers);
+  }
+
+  getNextMarker(afterTime) {
+    return this.markers.find((m) => m.time > afterTime + 0.01) || null;
+  }
+
+  getPrevMarker(beforeTime) {
+    const before = this.markers.filter((m) => m.time < beforeTime - 0.01);
+    return before.length > 0 ? before[before.length - 1] : null;
   }
 
   // ─── Track management ───
@@ -164,11 +205,23 @@ export default class TimelineEngine {
 
   getVisibleClipsAtTime(time) {
     const visible = [];
+    // Check if any audio-capable track is soloed
+    const anySoloed = this.tracks.some(
+      (t) => t.solo && (t.type === 'audio' || t.type === 'video')
+    );
+
     for (const track of this.tracks) {
       if (!track.visible) continue;
       for (const clip of track.clips) {
         if (time >= clip.startTime && time < clip.startTime + clip.duration) {
-          visible.push({ ...clip, trackId: track.id, trackType: track.type });
+          // Determine if this track's audio is muted
+          const audioMuted = track.muted || (anySoloed && !track.solo);
+          visible.push({
+            ...clip,
+            trackId: track.id,
+            trackType: track.type,
+            trackMuted: audioMuted,
+          });
         }
       }
     }

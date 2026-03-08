@@ -1,5 +1,5 @@
-import { Input } from '@audio-sep/ui';
-import { formatTimecode, parseTimecode } from '@audio-sep/shared';
+import { Input } from '@studioflow/ui';
+import { formatTimecode, parseTimecode } from '@studioflow/shared';
 
 export default function RegionSelector({
   start,

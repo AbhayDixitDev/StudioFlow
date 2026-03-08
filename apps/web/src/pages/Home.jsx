@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Card } from '@audio-sep/ui';
+import { Card } from '@studioflow/ui';
 import {
   Scissors,
   FileVideo,
@@ -8,6 +9,7 @@ import {
   RefreshCw,
   Film,
 } from 'lucide-react';
+import api from '../services/api.js';
 
 const tools = [
   {
@@ -59,14 +61,21 @@ const item = {
 
 export default function Home() {
   const navigate = useNavigate();
+  const [recentProjects, setRecentProjects] = useState([]);
+
+  useEffect(() => {
+    api.get('/video/projects?limit=6&sort=-updatedAt')
+      .then((res) => setRecentProjects(res.data?.projects || []))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
-          Audio Separator
+          StudioFlow
         </h1>
-        <p className="text-lg opacity-70">
+        <p className="text-lg text-gray-500 dark:text-gray-400">
           Powerful audio and video tools, all in one place
         </p>
       </div>
@@ -85,13 +94,49 @@ export default function Home() {
             >
               <div className="p-6">
                 <tool.icon size={32} style={{ color: tool.color }} className="mb-4" />
-                <h2 className="text-lg font-semibold mb-2">{tool.title}</h2>
-                <p className="text-sm opacity-60">{tool.description}</p>
+                <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">{tool.title}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{tool.description}</p>
               </div>
             </Card>
           </motion.div>
         ))}
       </motion.div>
+
+      {/* Recent Projects */}
+      {recentProjects.length > 0 && (
+        <div className="mt-12">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Recent Projects</h2>
+            <button
+              onClick={() => navigate('/editor')}
+              className="text-sm text-violet-500 hover:text-violet-400"
+            >
+              New Project
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentProjects.map((proj) => (
+              <Card
+                key={proj._id}
+                className="cursor-pointer hover:scale-[1.02] transition-transform"
+                onClick={() => navigate(`/editor?project=${proj._id}`)}
+              >
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Film size={16} className="text-violet-400" />
+                    <span className="text-sm font-medium truncate">{proj.name || 'Untitled Project'}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[10px] text-gray-400">
+                    <span>{proj.projectSettings?.width || 1920}x{proj.projectSettings?.height || 1080}</span>
+                    <span>{proj.tracks?.length || 0} tracks</span>
+                    <span>{new Date(proj.updatedAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -34,6 +34,17 @@ export default class ClipManager {
       effects: clipData.effects || [],
       transition: clipData.transition || null,
       text: clipData.text || null,
+      // Phase 178: image support
+      imageSrc: clipData.imageSrc || null,
+      // Phase 179: Ken Burns (start/end transform for animation)
+      kenBurns: clipData.kenBurns || null,
+      // Phase 181: speed control
+      speed: clipData.speed != null ? clipData.speed : 1,
+      reverse: clipData.reverse || false,
+      // Phase 182: crop
+      crop: clipData.crop || null,
+      // Phase 184: color filter preset
+      filter: clipData.filter || null,
     };
 
     // Collision check for video tracks

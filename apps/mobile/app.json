@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "StudioFlow",
+    "slug": "studioflow",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.studioflow.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f0f1a"
+      },
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.studioflow.mobile",
+      "supportsTablet": true
+    },
+    "plugins": [
+      "expo-document-picker",
+      "expo-audio"
+    ]
+  }
+}
