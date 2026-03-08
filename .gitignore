@@ -76,6 +76,9 @@ apps/web/public/ffmpeg/*.wasm
 apps/web/public/ffmpeg/*.js
 !apps/web/public/ffmpeg/.gitkeep
 
+# Docs (internal only)
+docs/
+
 # Claude Code
 .claude/
 
