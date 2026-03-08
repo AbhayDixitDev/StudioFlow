@@ -1,0 +1,84 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Turbo
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Data directories
+data/
+uploads/
+outputs/
+converted/
+cut/
+exports/
+thumbnails/
+
+# Python
+ml/venv/
+ml/models/*.pt
+ml/models/*.th
+ml/__pycache__/
+ml/src/__pycache__/
+ml/src/**/__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Electron
+apps/desktop/dist/
+apps/desktop/release/
+*.exe
+*.dmg
+*.AppImage
+
+# Mobile
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/
+
+# FFmpeg WASM (downloaded at build time)
+apps/web/public/ffmpeg/*.wasm
+apps/web/public/ffmpeg/*.js
+!apps/web/public/ffmpeg/.gitkeep
+
+# Claude Code
+.claude/
+
+# Misc
+*.tgz
+.cache

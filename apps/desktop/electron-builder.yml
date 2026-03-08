@@ -1,0 +1,37 @@
+appId: com.audioseparator.app
+productName: Audio Separator
+copyright: Copyright 2024
+
+directories:
+  output: release
+  buildResources: resources
+
+files:
+  - src/**/*
+  - renderer/**/*
+  - package.json
+
+extraResources:
+  - from: resources/ffmpeg
+    to: ffmpeg
+    filter:
+      - "**/*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.png
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Audio Separator
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
+
+publish: null

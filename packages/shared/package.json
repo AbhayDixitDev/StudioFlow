@@ -1,0 +1,10 @@
+{
+  "name": "@audio-sep/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "build": "echo 'No build step needed'",
+    "clean": "echo 'Nothing to clean'"
+  }
+}
